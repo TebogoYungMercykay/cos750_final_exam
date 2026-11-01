@@ -16,14 +16,14 @@ Try it at [tebogoyungmercykay.github.io/cos750_final_exam](https://tebogoyungmer
 
 ## Documentation
 
-| Doc                                          | Description                                                                   |
-| -------------------------------------------- | ----------------------------------------------------------------------------- |
-| [Project Plan](docs/plan.md)                 | Scope, learners, approach and milestones                                      |
-| [Development Guide](docs/development.md)     | Running, testing and building with `forge`, the layout and the CI/CD pipeline |
-| [Coding Standards](docs/coding-standards.md) | Project structure, code style, comments, tests and correctness rules          |
-| [Contributing](CONTRIBUTING.md)              | How to raise issues and changes, branches and commit messages                 |
-| [Code of Conduct](CODE_OF_CONDUCT.md)        | Expected behaviour in this project's spaces                                   |
-| [Security Policy](SECURITY.md)               | How to report a vulnerability privately                                       |
+| Doc                                          | Description                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------- |
+| [Project Plan](docs/plan.md)                 | Scope, learners, approach and milestones                                          |
+| [Development Guide](docs/development.md)     | Running, testing and building with `treetutor`, the layout and the CI/CD pipeline |
+| [Coding Standards](docs/coding-standards.md) | Project structure, code style, comments, tests and correctness rules              |
+| [Contributing](CONTRIBUTING.md)              | How to raise issues and changes, branches and commit messages                     |
+| [Code of Conduct](CODE_OF_CONDUCT.md)        | Expected behaviour in this project's spaces                                       |
+| [Security Policy](SECURITY.md)               | How to report a vulnerability privately                                           |
 
 ---
 

@@ -19,9 +19,9 @@ How code, tests and documentation are written in this repository. The aim is tha
 
 ```
 cos750_final_exam/
-├── forge                       # run script: setup, dev, test, e2e, lint, format, build, check, all
+├── treetutor                   # run script: setup, dev, test, e2e, lint, format, build, check, all
 ├── .github/workflows/
-│   ├── ci.yml                  # forge check, forge e2e, then deploy to GitHub Pages from master
+│   ├── ci.yml                  # treetutor check, treetutor e2e, then deploy to GitHub Pages from master
 │   └── push.yml                # flags pushes to master or develop that are not merges
 ├── docs/                       # guides, see the README's documentation table
 │   └── assets/                 # images used by the docs
@@ -60,14 +60,14 @@ Logic lives in `engine/`, `content/` and `state/` and is imported by components.
 
 - TypeScript in strict mode. No `any`, and non-null assertions only where the value is known to exist.
 - `PascalCase` for components and types, `camelCase` for functions and variables, `UPPER_CASE` for module constants such as `READY` or `TREES`.
-- Prettier formats everything: no semicolons, single quotes, lines up to 120 characters. Run `./forge format` rather than formatting by hand.
+- Prettier formats everything: no semicolons, single quotes, lines up to 120 characters. Run `./treetutor format` rather than formatting by hand.
 - oxlint runs with warnings as errors. Two React rules matter most: never read or write a ref during render, and never call `setState` straight inside an effect. Derive the value during render instead, or use React's pattern of adjusting state when a prop changes.
 - A file that exports a component exports only components. Hooks, constants and types that sit alongside a provider live in their own `.ts` file, as `progress.ts` does for `ProgressProvider.tsx`.
 - Reuse what exists before adding a file or a helper. New modules are for genuinely new responsibilities.
 
 ## Comments
 
-Comments document the code, not the task that produced it. A comment must be true and useful to someone who reads only the file, with no memory of how or why the code was written and no knowledge of the request behind it. The rule is the same in every layer of this repository: the TypeScript and CSS in `app/`, the `forge` script, the workflows in `.github/` and the configuration files. Only the comment syntax changes.
+Comments document the code, not the task that produced it. A comment must be true and useful to someone who reads only the file, with no memory of how or why the code was written and no knowledge of the request behind it. The rule is the same in every layer of this repository: the TypeScript and CSS in `app/`, the `treetutor` script, the workflows in `.github/` and the configuration files. Only the comment syntax changes.
 
 ### What a comment is for
 
@@ -83,7 +83,7 @@ Comments exist for two things only.
    */
   ```
 
-- **Section separators** for navigation in long files, such as `styles.css` or the `forge` script:
+- **Section separators** for navigation in long files, such as `styles.css` or the `treetutor` script:
 
   ```css
   /* ========================================================================== */
@@ -123,7 +123,7 @@ The same rule applies to the content of commit messages in reverse: they describ
 - Vitest for unit, property and component tests, beside the code they test as `*.test.ts(x)`. fast-check for properties over random trees. Testing Library for components, queried by role and accessible name.
 - Playwright and axe for end to end tests in `app/e2e/`, on desktop and mobile Chromium, against the production build.
 - Coverage: the engine stays at 100%; other logic at 90% or more. Screens are covered by the end to end suite.
-- Run `./forge check` before every commit and `./forge all` before merging. Every bug fix comes with a regression test that fails without the fix.
+- Run `./treetutor check` before every commit and `./treetutor all` before merging. Every bug fix comes with a regression test that fails without the fix.
 - Before saying an interface change is done, look at it in light, dark and on a phone. Automated scans do not see everything: the axe scan once passed while the visit order numbers inside the tree drawing were invisible.
 
 ## The interface

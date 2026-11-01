@@ -12,30 +12,30 @@
 ## Run it
 
 ```bash
-./forge setup     # install dependencies and the browser the end to end tests use
-./forge dev       # http://localhost:5173
+./treetutor setup     # install dependencies and the browser the end to end tests use
+./treetutor dev       # http://localhost:5173
 ```
 
-## The forge script
+## The treetutor script
 
-`./forge` runs everything from the repository root, and CI calls the same commands, so a green `./forge all` on your machine means the same checks pass on GitHub. `./forge --help` lists every option.
+`./treetutor` runs everything from the repository root, and CI calls the same commands, so a green `./treetutor all` on your machine means the same checks pass on GitHub. `./treetutor --help` lists every option.
 
-| Command             | What it does                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------------ |
-| `./forge setup`     | Install the dependencies and Playwright's Chromium                                               |
-| `./forge dev`       | Development server with hot reload                                                               |
-| `./forge test`      | Unit, property and component tests; `--watch` reruns on change, `--coverage` enforces thresholds |
-| `./forge e2e`       | End to end and accessibility tests on desktop and mobile; `--project mobile` for one             |
-| `./forge lint`      | oxlint, warnings fail                                                                            |
-| `./forge format`    | Prettier over the code and the docs; `--check` only reports                                      |
-| `./forge typecheck` | TypeScript, nothing written                                                                      |
-| `./forge build`     | Production build into `app/dist`                                                                 |
-| `./forge preview`   | Build, then serve the production build                                                           |
-| `./forge check`     | Everything CI checks before the browser tests                                                    |
-| `./forge all`       | `check`, then the end to end tests: everything CI runs                                           |
-| `./forge clean`     | Delete build and test output; `--all` also deletes `app/node_modules`                            |
+| Command                 | What it does                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------ |
+| `./treetutor setup`     | Install the dependencies and Playwright's Chromium                                               |
+| `./treetutor dev`       | Development server with hot reload                                                               |
+| `./treetutor test`      | Unit, property and component tests; `--watch` reruns on change, `--coverage` enforces thresholds |
+| `./treetutor e2e`       | End to end and accessibility tests on desktop and mobile; `--project mobile` for one             |
+| `./treetutor lint`      | oxlint, warnings fail                                                                            |
+| `./treetutor format`    | Prettier over the code and the docs; `--check` only reports                                      |
+| `./treetutor typecheck` | TypeScript, nothing written                                                                      |
+| `./treetutor build`     | Production build into `app/dist`                                                                 |
+| `./treetutor preview`   | Build, then serve the production build                                                           |
+| `./treetutor check`     | Everything CI checks before the browser tests                                                    |
+| `./treetutor all`       | `check`, then the end to end tests: everything CI runs                                           |
+| `./treetutor clean`     | Delete build and test output; `--all` also deletes `app/node_modules`                            |
 
-Anything after `--` goes to the underlying tool, for example `./forge test -- src/engine` or `./forge e2e -- --grep keyboard`.
+Anything after `--` goes to the underlying tool, for example `./treetutor test -- src/engine` or `./treetutor e2e -- --grep keyboard`.
 
 ## How the app is put together
 
@@ -49,8 +49,8 @@ Progress stays in the learner's browser. There is no server and no account.
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `master` or `develop` and on every pull request:
 
-1. `./forge check`: lint, format check, typecheck, unit tests with coverage (engine 100%, other logic 90%), build
-2. `./forge e2e`: Playwright and axe on desktop and mobile Chromium
+1. `./treetutor check`: lint, format check, typecheck, unit tests with coverage (engine 100%, other logic 90%), build
+2. `./treetutor e2e`: Playwright and axe on desktop and mobile Chromium
 3. on `master` only, and only when 1 and 2 pass: deploy `app/dist` to GitHub Pages
 
 [`.github/workflows/push.yml`](../.github/workflows/push.yml) marks a push to `master` or `develop` as failed when its head commit is not a merge, so changes arrive through pull requests or merge commits.
