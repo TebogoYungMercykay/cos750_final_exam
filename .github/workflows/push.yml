@@ -1,0 +1,29 @@
+name: Block Direct Pushes
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+
+permissions: {}
+
+jobs:
+  block-direct-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if push is a merge commit
+        # The message goes through an environment variable, never into the script text, so a crafted commit message cannot run as shell code.
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          COMMIT_PARENTS=$(printf '%s\n' "$MESSAGE" | grep -c "^Merge pull request" || true)
+          MERGE_COMMIT=$(printf '%s\n' "$MESSAGE" | grep -c "^Merge branch" || true)
+
+          if [[ "$COMMIT_PARENTS" -eq 0 && "$MERGE_COMMIT" -eq 0 ]]; then
+            echo "::error::Direct pushes to ${{ github.ref_name }} are not allowed. Use a Pull Request."
+            exit 1
+          fi
+
+          echo "Merge commit detected. Push allowed."
