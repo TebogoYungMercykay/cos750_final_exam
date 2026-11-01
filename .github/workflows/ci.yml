@@ -24,8 +24,8 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: app/package-lock.json
-      - run: ./forge setup --no-browsers
-      - run: ./forge check
+      - run: ./treetutor setup --no-browsers
+      - run: ./treetutor check
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -44,8 +44,8 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: app/package-lock.json
-      - run: ./forge setup --system-deps
-      - run: ./forge e2e
+      - run: ./treetutor setup --system-deps
+      - run: ./treetutor e2e
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
@@ -71,8 +71,8 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: app/package-lock.json
-      - run: ./forge setup --no-browsers
-      - run: ./forge build
+      - run: ./treetutor setup --no-browsers
+      - run: ./treetutor build
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

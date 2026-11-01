@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# forge: build, test and run the COS212 app with one command from the repository root.
+# treetutor: build, test and run the COS212 app with one command from the repository root.
 #
-#   ./forge setup                       install the dependencies and the browser the end to end tests use
-#   ./forge check                       everything CI checks before the browser tests
-#   ./forge all                         check, then the end to end tests: everything CI runs
-#   ./forge dev | test | e2e | lint | format | typecheck | build | preview | clean
+#   ./treetutor setup                       install the dependencies and the browser the end to end tests use
+#   ./treetutor check                       everything CI checks before the browser tests
+#   ./treetutor all                         check, then the end to end tests: everything CI runs
+#   ./treetutor dev | test | e2e | lint | format | typecheck | build | preview | clean
 #
 # The app lives in app/. CI (.github/workflows/ci.yml) calls this script, so local and CI runs match.
 # Kept to bash 3.2 features, the version macOS ships.
@@ -28,26 +28,26 @@ setup_colour () {
     esac
     if (( on )); then
         C_RESET=$'\033[0m'; C_BOLD=$'\033[1m'; C_DIM=$'\033[2m'
-        C_FORGE=$'\033[34m'   # blue
+        C_BRAND=$'\033[34m'   # blue
         C_OK=$'\033[32m'      # green
         C_ERR=$'\033[31m'     # red
     else
-        C_RESET=''; C_BOLD=''; C_DIM=''; C_FORGE=''; C_OK=''; C_ERR=''
+        C_RESET=''; C_BOLD=''; C_DIM=''; C_BRAND=''; C_OK=''; C_ERR=''
     fi
 }
 
-log ()     { printf '%s[forge]%s %s\n' "$C_FORGE$C_BOLD" "$C_RESET" "$*"; }
-log_ok ()  { printf '%s[forge]%s %s\n' "$C_OK$C_BOLD" "$C_RESET" "$*"; }
-log_err () { printf '%s[forge]%s %s\n' "$C_ERR$C_BOLD" "$C_RESET" "$*" >&2; }
+log ()     { printf '%s[treetutor]%s %s\n' "$C_BRAND$C_BOLD" "$C_RESET" "$*"; }
+log_ok ()  { printf '%s[treetutor]%s %s\n' "$C_OK$C_BOLD" "$C_RESET" "$*"; }
+log_err () { printf '%s[treetutor]%s %s\n' "$C_ERR$C_BOLD" "$C_RESET" "$*" >&2; }
 die ()     { log_err "$*"; exit 1; }
 
 # --- usage --------------------------------------------------------------------
 usage () {
     cat <<EOF
-${C_BOLD}forge${C_RESET}: build, test and run the COS212 app.
+${C_BOLD}treetutor${C_RESET}: build, test and run the COS212 app.
 
 ${C_BOLD}USAGE${C_RESET}
-    ./forge <command> [options] [-- <arguments for the underlying tool>]
+    ./treetutor <command> [options] [-- <arguments for the underlying tool>]
 
 ${C_BOLD}COMMANDS${C_RESET}
     setup       install the app's dependencies (npm ci) and the Chromium build Playwright uses
@@ -79,12 +79,12 @@ ${C_BOLD}OPTIONS${C_RESET}
     -h, --help         show this help
 
 ${C_BOLD}EXAMPLES${C_RESET}
-    ./forge setup && ./forge check
-    ./forge test --watch -- src/engine
-    ./forge e2e --project mobile -- --grep keyboard
+    ./treetutor setup && ./treetutor check
+    ./treetutor test --watch -- src/engine
+    ./treetutor e2e --project mobile -- --grep keyboard
 
 ${C_BOLD}NOTES${C_RESET}
-    CI calls this script, so a green './forge all' here means the same checks pass on GitHub.
+    CI calls this script, so a green './treetutor all' here means the same checks pass on GitHub.
     'format' tidies the docs too; CI only enforces the formatting of the code.
     Needs Node ${NODE_MIN} or later. On Windows, run it from Git Bash or WSL.
 EOF
@@ -138,7 +138,7 @@ esac
 [[ -n "$command" ]] || { usage; exit 2; }
 
 only_with () {
-    [[ "$command" =~ ^($2)$ ]] || die "$1 goes with './forge ${2//|/ or ./forge }'"
+    [[ "$command" =~ ^($2)$ ]] || die "$1 goes with './treetutor ${2//|/ or ./treetutor }'"
 }
 
 (( watch ))         && only_with --watch test
@@ -166,7 +166,7 @@ if [[ "$command" != clean ]]; then
 fi
 
 if [[ ! "$command" =~ ^(setup|clean)$ && ! -d "$APP_DIR/node_modules" ]]; then
-    die "the dependencies are not installed; run './forge setup' first"
+    die "the dependencies are not installed; run './treetutor setup' first"
 fi
 
 # --- helpers ------------------------------------------------------------------
@@ -202,7 +202,7 @@ cmd_setup () {
     else
         step "Chromium for Playwright" in_app npx playwright install chromium
     fi
-    log_ok "ready: './forge dev' starts the app, './forge check' runs the checks"
+    log_ok "ready: './treetutor dev' starts the app, './treetutor check' runs the checks"
 }
 
 cmd_dev () {
