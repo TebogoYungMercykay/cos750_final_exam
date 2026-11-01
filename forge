@@ -1,0 +1,286 @@
+#!/usr/bin/env bash
+#
+# forge: build, test and run the COS212 app with one command from the repository root.
+#
+#   ./forge setup                       install the dependencies and the browser the end to end tests use
+#   ./forge check                       everything CI checks before the browser tests
+#   ./forge all                         check, then the end to end tests: everything CI runs
+#   ./forge dev | test | e2e | lint | format | typecheck | build | preview | clean
+#
+# The app lives in app/. CI (.github/workflows/ci.yml) calls this script, so local and CI runs match.
+# Kept to bash 3.2 features, the version macOS ships.
+
+set -uo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$REPO_ROOT/app"
+NODE_MIN=24
+
+# --- colour -------------------------------------------------------------------
+use_colour=auto
+
+setup_colour () {
+    local on=0
+    case "$use_colour" in
+        always) on=1 ;;
+        never)  on=0 ;;
+        auto)   [[ -t 1 && -z "${NO_COLOR:-}" ]] && on=1 ;;
+    esac
+    if (( on )); then
+        C_RESET=$'\033[0m'; C_BOLD=$'\033[1m'; C_DIM=$'\033[2m'
+        C_FORGE=$'\033[34m'   # blue
+        C_OK=$'\033[32m'      # green
+        C_ERR=$'\033[31m'     # red
+    else
+        C_RESET=''; C_BOLD=''; C_DIM=''; C_FORGE=''; C_OK=''; C_ERR=''
+    fi
+}
+
+log ()     { printf '%s[forge]%s %s\n' "$C_FORGE$C_BOLD" "$C_RESET" "$*"; }
+log_ok ()  { printf '%s[forge]%s %s\n' "$C_OK$C_BOLD" "$C_RESET" "$*"; }
+log_err () { printf '%s[forge]%s %s\n' "$C_ERR$C_BOLD" "$C_RESET" "$*" >&2; }
+die ()     { log_err "$*"; exit 1; }
+
+# --- usage --------------------------------------------------------------------
+usage () {
+    cat <<EOF
+${C_BOLD}forge${C_RESET}: build, test and run the COS212 app.
+
+${C_BOLD}USAGE${C_RESET}
+    ./forge <command> [options] [-- <arguments for the underlying tool>]
+
+${C_BOLD}COMMANDS${C_RESET}
+    setup       install the app's dependencies (npm ci) and the Chromium build Playwright uses
+    dev         start the development server with hot reload
+    test        unit, property and component tests (Vitest)
+    e2e         end to end and accessibility tests (Playwright) against a production build,
+                on desktop and mobile Chromium
+    lint        oxlint; warnings fail
+    format      rewrite the code and the docs with Prettier
+    typecheck   TypeScript, nothing written
+    build       production build into app/dist
+    preview     build, then serve app/dist
+    check       what CI runs before the browser tests: lint, format check, typecheck,
+                unit tests with coverage, build. Stops at the first failure
+    all         check, then e2e: everything CI runs before it deploys
+    clean       delete build and test output
+
+${C_BOLD}OPTIONS${C_RESET}
+    --watch            test: run again on every change
+    --coverage         test: enforce the coverage thresholds and write app/coverage
+    --check            format: list what needs formatting instead of rewriting it
+    --project <name>   e2e: desktop or mobile (default: both)
+    --port <n>         dev and preview: the port to listen on (default: Vite's, 5173 and 4173)
+    --no-build         preview: serve the app/dist that is already there
+    --no-browsers      setup: skip the Playwright browser download
+    --system-deps      setup: also install the browser's system libraries (needs sudo; for CI)
+    --all              clean: also delete app/node_modules
+    --color=WHEN       always | never | auto (default: auto)
+    -h, --help         show this help
+
+${C_BOLD}EXAMPLES${C_RESET}
+    ./forge setup && ./forge check
+    ./forge test --watch -- src/engine
+    ./forge e2e --project mobile -- --grep keyboard
+
+${C_BOLD}NOTES${C_RESET}
+    CI calls this script, so a green './forge all' here means the same checks pass on GitHub.
+    'format' tidies the docs too; CI only enforces the formatting of the code.
+    Needs Node ${NODE_MIN} or later. On Windows, run it from Git Bash or WSL.
+EOF
+}
+
+# --- argument parsing ---------------------------------------------------------
+command=""
+watch=0
+coverage=0
+check_only=0
+project=""
+port=""
+do_build=1
+browsers=1
+system_deps=0
+clean_all=0
+extra=()
+
+while (( $# )); do
+    case "$1" in
+        setup|dev|test|e2e|lint|format|typecheck|build|preview|check|all|clean)
+            if [[ -z "$command" ]]; then command="$1"
+            else setup_colour; die "only one command at a time ($command, $1)"; fi ;;
+        --watch)              watch=1 ;;
+        --coverage)           coverage=1 ;;
+        --check)              check_only=1 ;;
+        --project)            shift; project="${1:-}" ;;
+        --project=*)          project="${1#*=}" ;;
+        --port)               shift; port="${1:-}" ;;
+        --port=*)             port="${1#*=}" ;;
+        --no-build)           do_build=0 ;;
+        --no-browsers)        browsers=0 ;;
+        --system-deps)        system_deps=1 ;;
+        --all)                clean_all=1 ;;
+        --color=*|--colour=*) use_colour="${1#*=}" ;;
+        --no-color|--no-colour) use_colour=never ;;
+        -h|--help|help)       setup_colour; usage; exit 0 ;;
+        --)                   shift; extra=("$@"); break ;;
+        *)                    setup_colour; log_err "unknown argument: $1"; echo; usage >&2; exit 2 ;;
+    esac
+    shift
+done
+
+setup_colour
+
+case "$use_colour" in
+    always|never|auto) ;;
+    *) die "--color must be always, never or auto" ;;
+esac
+
+[[ -n "$command" ]] || { usage; exit 2; }
+
+only_with () {
+    [[ "$command" =~ ^($2)$ ]] || die "$1 goes with './forge ${2//|/ or ./forge }'"
+}
+
+(( watch ))         && only_with --watch test
+(( coverage ))      && only_with --coverage test
+(( check_only ))    && only_with --check format
+[[ -n "$project" ]] && only_with --project e2e
+[[ -n "$port" ]]    && only_with --port 'dev|preview'
+(( ! do_build ))    && only_with --no-build preview
+(( ! browsers ))    && only_with --no-browsers setup
+(( system_deps ))   && only_with --system-deps setup
+(( clean_all ))     && only_with --all clean
+(( ${#extra[@]} ))  && only_with '-- <arguments>' 'dev|test|e2e|lint|typecheck|build|preview'
+
+[[ -z "$project" || "$project" =~ ^(desktop|mobile)$ ]] || die "--project must be desktop or mobile"
+[[ -z "$port" || "$port" =~ ^[0-9]+$ ]] || die "--port must be a number"
+
+# --- preflight ----------------------------------------------------------------
+[[ -f "$APP_DIR/package.json" ]] || die "no app found at $APP_DIR"
+
+if [[ "$command" != clean ]]; then
+    command -v node >/dev/null 2>&1 || die "node is not installed or not on PATH (Node $NODE_MIN or later)"
+    command -v npm  >/dev/null 2>&1 || die "npm is not installed or not on PATH"
+    node_major="$(node -p 'process.versions.node.split(".")[0]')"
+    (( node_major >= NODE_MIN )) || die "Node $NODE_MIN or later is needed; this is $(node --version)"
+fi
+
+if [[ ! "$command" =~ ^(setup|clean)$ && ! -d "$APP_DIR/node_modules" ]]; then
+    die "the dependencies are not installed; run './forge setup' first"
+fi
+
+# --- helpers ------------------------------------------------------------------
+in_app ()  { (cd "$APP_DIR" && "$@"); }
+in_root () { (cd "$REPO_ROOT" && "$@"); }
+npm_run () { in_app npm run --silent "$@"; }
+
+# npm run <script>, then anything that followed -- on the command line.
+npm_run_with () {
+    local script="$1"
+    shift
+    npm_run "$script" -- "$@" ${extra[@]+"${extra[@]}"}
+}
+
+# One named step: stops the script when it fails, and says how long it took.
+step () {
+    local name="$1" started=$SECONDS
+    shift
+    log "$name"
+    "$@" || die "$name failed; see the output above"
+    log_ok "$name ${C_DIM}ok, $(( SECONDS - started ))s${C_RESET}"
+}
+
+prettier () { "$APP_DIR/node_modules/.bin/prettier" "$@"; }
+
+# --- commands -----------------------------------------------------------------
+cmd_setup () {
+    step "dependencies" in_app npm ci
+    if (( ! browsers )); then
+        log "Playwright browser ${C_DIM}skipped (--no-browsers)${C_RESET}"
+    elif (( system_deps )); then
+        step "Chromium and its system libraries" in_app npx playwright install --with-deps chromium
+    else
+        step "Chromium for Playwright" in_app npx playwright install chromium
+    fi
+    log_ok "ready: './forge dev' starts the app, './forge check' runs the checks"
+}
+
+cmd_dev () {
+    log "development server ${C_DIM}(Ctrl+C stops it)${C_RESET}"
+    npm_run_with dev ${port:+--port "$port" --strictPort}
+}
+
+cmd_test () {
+    if (( watch )); then
+        log "tests in watch mode ${C_DIM}(q quits)${C_RESET}"
+        npm_run_with test:watch $( (( coverage )) && echo --coverage )
+    else
+        step "unit tests" npm_run_with test $( (( coverage )) && echo --coverage )
+    fi
+}
+
+cmd_e2e () {
+    step "end to end tests" npm_run_with e2e ${project:+--project="$project"}
+}
+
+cmd_format () {
+    if (( check_only )); then
+        step "format check, code" npm_run format:check
+        step "format check, docs" in_root prettier --check README.md docs
+    else
+        step "formatting the code" npm_run format -- --log-level warn
+        step "formatting the docs" in_root prettier --write --log-level warn README.md docs
+    fi
+}
+
+cmd_preview () {
+    if (( do_build )); then
+        step build npm_run build
+    elif [[ ! -f "$APP_DIR/dist/index.html" ]]; then
+        die "app/dist holds no build; run without --no-build"
+    fi
+    log "serving app/dist ${C_DIM}(Ctrl+C stops it)${C_RESET}"
+    npm_run_with preview ${port:+--port "$port" --strictPort}
+}
+
+cmd_check () {
+    local started=$SECONDS
+    step lint npm_run lint
+    step "format check" npm_run format:check
+    step typecheck npm_run typecheck
+    step "unit tests with coverage" npm_run coverage
+    step build npm_run build
+    log_ok "${C_BOLD}every check passed${C_RESET} ${C_DIM}($(( SECONDS - started ))s)${C_RESET}"
+}
+
+cmd_all () {
+    local started=$SECONDS
+    cmd_check
+    step "end to end tests" npm_run e2e
+    log_ok "${C_BOLD}everything CI runs passed${C_RESET} ${C_DIM}($(( SECONDS - started ))s)${C_RESET}"
+}
+
+cmd_clean () {
+    local target targets="dist coverage playwright-report test-results blob-report"
+    (( clean_all )) && targets="$targets node_modules"
+    for target in $targets; do
+        [[ -e "$APP_DIR/$target" ]] || continue
+        rm -rf "${APP_DIR:?}/$target" && log "removed app/$target"
+    done
+    log_ok "clean"
+}
+
+case "$command" in
+    setup)     cmd_setup ;;
+    dev)       cmd_dev ;;
+    test)      cmd_test ;;
+    e2e)       cmd_e2e ;;
+    lint)      step lint npm_run_with lint ;;
+    format)    cmd_format ;;
+    typecheck) step typecheck npm_run_with typecheck ;;
+    build)     step build npm_run_with build ;;
+    preview)   cmd_preview ;;
+    check)     cmd_check ;;
+    all)       cmd_all ;;
+    clean)     cmd_clean ;;
+esac
