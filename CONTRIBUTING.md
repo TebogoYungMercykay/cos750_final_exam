@@ -18,7 +18,7 @@ Open a GitHub issue that says what you did, what you expected and what happened.
 
 1. Branch from `develop`, as `feat/...`, `fix/...` or `docs/...`.
 2. Follow the [Coding Standards](docs/coding-standards.md), in particular its correctness rules.
-3. Run `./forge all` and make sure everything passes. Add a regression test for any bug you fix. The [Development Guide](docs/development.md) explains each command.
+3. Run `./treetutor all` and make sure everything passes. Add a regression test for any bug you fix. The [Development Guide](docs/development.md) explains each command.
 4. If you change lesson content, the content tests must still pass. Fix the content, never loosen the test to fit it.
 5. Open a pull request into `develop` with a one-line summary and a few bullets of changes, and merge it with a merge commit. `develop` is merged into `master` after review.
 
