@@ -64,6 +64,7 @@ describe('levelCount', () => {
 })
 
 describe('childCount', () => {
+  
   const tree = fromKeys([50, 30, 70, 20])
 
   it('counts two children, one child and none', () => {
