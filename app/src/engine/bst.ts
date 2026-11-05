@@ -66,7 +66,6 @@ export function levelCount(root: Tree): number {
   return root === null ? 0 : 1 + Math.max(levelCount(root.left), levelCount(root.right))
 }
 
-/** Height in edges, so a single node has height 0 and the empty tree -1. */
 export function height(root: Tree): number {
   return levelCount(root) - 1
 }
