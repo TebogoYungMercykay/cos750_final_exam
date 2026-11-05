@@ -1,6 +1,6 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { fromKeys, insert, isBst, levelCount, node, searchPath, size } from './bst'
+import { childCount, fromKeys, insert, isBst, leaves, levelCount, node, searchPath, size } from './bst'
 
 const uniqueKeys = fc.uniqueArray(fc.integer({ min: -999, max: 999 }), { maxLength: 40 })
 
@@ -63,6 +63,16 @@ describe('levelCount', () => {
   })
 })
 
+describe('childCount', () => {
+  const tree = fromKeys([50, 30, 70, 20])
+
+  it('counts two children, one child and none', () => {
+    expect(childCount(tree!)).toBe(2)
+    expect(childCount(tree!.left!)).toBe(1)
+    expect(childCount(tree!.right!)).toBe(0)
+  })
+})
+
 describe('properties of any tree built by insert', () => {
   it('satisfies the ordering property', () => {
     fc.assert(fc.property(uniqueKeys, (keys) => isBst(fromKeys(keys))))
@@ -80,6 +90,34 @@ describe('properties of any tree built by insert', () => {
           const { found, compared } = searchPath(tree, key)
           return found && compared.length <= levelCount(tree)
         })
+      }),
+    )
+  })
+
+  it('has one fewer edge than nodes, so the child counts add up to size - 1', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => {
+        const tree = fromKeys(keys)
+        const countEdges = (t: typeof tree): number =>
+          t === null ? 0 : childCount(t) + countEdges(t.left) + countEdges(t.right)
+        return countEdges(tree) === Math.max(0, size(tree) - 1)
+      }),
+    )
+  })
+
+  it('gives zero children to exactly the leaves', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => {
+        const tree = fromKeys(keys)
+        const zero: number[] = []
+        const walk = (t: typeof tree) => {
+          if (t === null) return
+          walk(t.left)
+          if (childCount(t) === 0) zero.push(t.key)
+          walk(t.right)
+        }
+        walk(tree)
+        return zero.join() === leaves(tree).join()
       }),
     )
   })

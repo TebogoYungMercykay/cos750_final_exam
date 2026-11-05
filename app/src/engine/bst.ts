@@ -102,6 +102,11 @@ export function depthOf(root: Tree, key: number, depth = 0): number {
   return left !== -1 ? left : depthOf(root.right, key, depth + 1)
 }
 
+/** How many children a node has: 0 for a leaf, 1 or 2 for an internal node. */
+export function childCount(n: TreeNode): number {
+  return (n.left ? 1 : 0) + (n.right ? 1 : 0)
+}
+
 export function leaves(root: Tree): number[] {
   if (root === null) return []
   if (root.left === null && root.right === null) return [root.key]
