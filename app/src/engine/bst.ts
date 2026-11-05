@@ -82,7 +82,6 @@ export function fromSpec(spec: TreeSpec): Tree {
   return node(key, fromSpec(left), fromSpec(right))
 }
 
-/** Searches every node, not only the BST path, because question trees may break the rule. */
 export function findNode(root: Tree, key: number): TreeNode | null {
   if (root === null) return null
   if (root.key === key) return root
