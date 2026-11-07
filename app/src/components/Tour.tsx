@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { bodyOf, stepsFor, TOURS, type TourId } from '../content/tours'
+import { bodyOf, stepsFor, TOURS, type TourId, type TourStep } from '../content/tours'
 import { useProgress, type Mode } from '../state/progress'
 import { tours, useTours } from '../state/tour'
 
@@ -10,7 +10,7 @@ const CARD_WIDTH = 380
 const SPOT_PAD = 8
 /** Below this viewport width the card docks at the bottom instead of sitting beside its target. */
 const DOCK_BELOW = 640
-/** The card sits beside its target only when there is at least this much room above or below it. */
+/** The least room the card is given beside its target, before its real height is known. */
 const ROOM_NEEDED = 240
 const FOCUSABLE = 'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
 
@@ -19,6 +19,24 @@ interface Box {
   left: number
   width: number
   height: number
+}
+
+/** Whether a tour target is on screen at all: present, and not hidden with display: none. */
+function isShown(target: string): boolean {
+  const el = document.querySelector<HTMLElement>(`[data-tour="${target}"]`)
+  return el !== null && el.getClientRects().length > 0
+}
+
+/**
+ * The element that had focus before the first tour of a chain. When one tour
+ * leads straight into the next, focus is on the old card as the new one
+ * starts, so the new tour inherits the original element to return focus to.
+ */
+let chainOpener: Element | null = null
+function openerFor(focused: Element | null): Element | null {
+  if (focused?.closest('.tour')) return chainOpener
+  chainOpener = focused
+  return focused
 }
 
 /** The tour overlay, mounted once at the root. It shows whichever tour the tour store has made active. */
@@ -39,32 +57,37 @@ export function Tour() {
   )
 }
 
-function placeCard(spot: Box | null): CSSProperties {
+/** Beside the target when the whole card fits there, below it first; otherwise docked at the bottom of the screen. */
+function placeCard(spot: Box | null, cardHeight: number): CSSProperties {
   const vw = window.innerWidth
   const vh = window.innerHeight
   const width = Math.min(CARD_WIDTH, vw - MARGIN * 2)
-  if (!spot || vw < DOCK_BELOW) return { width, left: (vw - width) / 2, bottom: MARGIN }
+  const docked = { width, left: (vw - width) / 2, bottom: MARGIN }
+  if (!spot || vw < DOCK_BELOW) return docked
   const left = Math.min(Math.max(spot.left + spot.width / 2 - width / 2, MARGIN), vw - width - MARGIN)
-  const below = vh - (spot.top + spot.height)
-  const above = spot.top
-  if (Math.max(below, above) < ROOM_NEEDED) return { width, left, bottom: MARGIN }
-  return below >= above
-    ? { width, left, top: spot.top + spot.height + GAP }
-    : { width, left, bottom: vh - spot.top + GAP }
+  const needed = Math.max(cardHeight, ROOM_NEEDED) + GAP + MARGIN
+  if (vh - (spot.top + spot.height) >= needed) return { width, left, top: spot.top + spot.height + GAP }
+  if (spot.top >= needed) return { width, left, bottom: vh - spot.top + GAP }
+  return docked
 }
 
 function TourRun({ id, mode, onEnd }: { id: TourId; mode: Mode; onEnd: () => void }) {
-  const steps = stepsFor(id, mode)
+  /** The steps whose targets are on screen; null until checked, a frame after the tour mounts with its targets. */
+  const [steps, setSteps] = useState<TourStep[] | null>(null)
   const [index, setIndex] = useState(0)
   const [spot, setSpot] = useState<Box | null>(null)
+  const [cardHeight, setCardHeight] = useState(0)
+  /** True when the text is taller than the card allows, so keyboard users can focus it and scroll. */
+  const [bodyScrolls, setBodyScrolls] = useState(false)
+  const bodyRef = useRef<HTMLParagraphElement>(null)
   const [shown, setShown] = useState(false)
-  const [opener] = useState(() => document.activeElement)
+  const [opener] = useState(() => openerFor(document.activeElement))
   const titleRef = useRef<HTMLHeadingElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const endRef = useRef(onEnd)
-  const step = steps[index]
-  const last = index === steps.length - 1
+  const step = steps?.[index]
+  const last = steps !== null && index === steps.length - 1
   const titleId = `tour-${id}-title`
   const bodyId = `tour-${id}-body`
 
@@ -73,6 +96,18 @@ function TourRun({ id, mode, onEnd }: { id: TourId; mode: Mode; onEnd: () => voi
   })
 
   useEffect(() => {
+    const frame = requestAnimationFrame(() =>
+      setSteps(stepsFor(id, mode).filter((s) => !s.target || isShown(s.target))),
+    )
+    return () => cancelAnimationFrame(frame)
+  }, [id, mode])
+
+  useEffect(() => {
+    if (steps === null) return
+    if (!step) {
+      endRef.current()
+      return
+    }
     let frame = 0
     const target = step.target ? document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`) : null
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -90,6 +125,9 @@ function TourRun({ id, mode, onEnd }: { id: TourId; mode: Mode; onEnd: () => voi
           const bottom = Math.min(r.bottom + SPOT_PAD, window.innerHeight - 4)
           setSpot({ top, left: r.left - SPOT_PAD, width: r.width + SPOT_PAD * 2, height: Math.max(bottom - top, 0) })
         } else setSpot(null)
+        setCardHeight(cardRef.current?.offsetHeight ?? 0)
+        const body = bodyRef.current
+        setBodyScrolls(body !== null && body.scrollHeight > body.clientHeight)
         setShown(true)
       })
     }
@@ -103,7 +141,7 @@ function TourRun({ id, mode, onEnd }: { id: TourId; mode: Mode; onEnd: () => voi
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
     }
-  }, [step, last])
+  }, [steps, step, last])
 
   useEffect(() => {
     if (shown) titleRef.current?.focus({ preventScroll: true })
@@ -152,6 +190,8 @@ function TourRun({ id, mode, onEnd }: { id: TourId; mode: Mode; onEnd: () => voi
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  if (!steps || !step) return null
+
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Tab' && cardRef.current) {
       const items = [...cardRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)]
@@ -179,7 +219,7 @@ function TourRun({ id, mode, onEnd }: { id: TourId; mode: Mode; onEnd: () => voi
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}
-        style={placeCard(spot)}
+        style={placeCard(spot, cardHeight)}
         onKeyDown={onKeyDown}
       >
         <p className="tour-count">
@@ -191,7 +231,7 @@ function TourRun({ id, mode, onEnd }: { id: TourId; mode: Mode; onEnd: () => voi
         <h2 id={titleId} ref={titleRef} tabIndex={-1} className="tour-title">
           {step.title}
         </h2>
-        <p id={bodyId} className="tour-body">
+        <p id={bodyId} className="tour-body" ref={bodyRef} tabIndex={bodyScrolls ? 0 : undefined}>
           {bodyOf(step, mode)}
         </p>
         <ol className="tour-dots" aria-hidden="true">

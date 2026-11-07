@@ -24,6 +24,12 @@ export const OPERATIONS = [
 
 export type Operation = (typeof OPERATIONS)[number]['id']
 
+/** A key typed or linked by the learner: a whole number from 0 to 999 written in digits, or null. */
+export function parseKey(text: string | undefined): number | null {
+  const trimmed = text?.trim() ?? ''
+  return /^\d{1,3}$/.test(trimmed) ? Number(trimmed) : null
+}
+
 export interface Review {
   op: Operation
   preset: PresetId

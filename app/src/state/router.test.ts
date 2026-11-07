@@ -33,12 +33,13 @@ describe('routes', () => {
   it('ignores playground parts it does not recognise', () => {
     expect(parseRoute('#/playground/fly')).toEqual({ name: 'playground' })
     expect(parseRoute('#/playground/pre/forest')).toEqual({ name: 'playground', op: 'pre' })
-    expect(parseRoute('#/playground/search/sorted/-3')).toEqual({ name: 'playground', op: 'search', preset: 'sorted' })
-    expect(parseRoute('#/playground/search/sorted/1000')).toEqual({
-      name: 'playground',
-      op: 'search',
-      preset: 'sorted',
-    })
+  })
+
+  it('accepts only a plain whole number from 0 to 999 as a key', () => {
+    const keyOf = (part: string) => (parseRoute(`#/playground/search/sorted/${part}`) as { key?: number }).key
+    expect(keyOf('60')).toBe(60)
+    expect(keyOf('0')).toBe(0)
+    for (const bad of ['', '1e2', '0x1F', '12.5', '-3', '1000']) expect(keyOf(bad), JSON.stringify(bad)).toBeUndefined()
   })
 
   it('links every outcome to a playground animation that opens running', () => {

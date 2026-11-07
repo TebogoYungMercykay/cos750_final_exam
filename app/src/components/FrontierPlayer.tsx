@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Tree } from '../engine/bst'
-import type { FrontierTraceKind } from '../engine/traces'
+import { FRONTIER_INTERFACE, type FrontierTraceKind } from '../engine/traces'
 import { StepPlayer } from './StepPlayer'
 
 const FRONTIERS: Record<FrontierTraceKind, string> = {
@@ -22,6 +22,16 @@ export function FrontierPlayer({ tree }: { tree: Tree }) {
           </label>
         ))}
       </fieldset>
+      <details className="interface">
+        <summary>
+          The <code>Frontier</code> interface both walks use
+        </summary>
+        <p className="muted">
+          The loop below works with any class that implements it. A queue class and a stack class each do, so the same
+          loop walks breadth first or depth first.
+        </p>
+        <pre className="code code-block">{FRONTIER_INTERFACE.join('\n')}</pre>
+      </details>
       <StepPlayer key={kind} tree={tree} kind={kind} />
     </div>
   )

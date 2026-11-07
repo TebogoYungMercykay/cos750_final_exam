@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MODULE_BY_ID, OUTCOME_IDS } from '../content/modules'
-import { DEFAULT_PRESET, OPERATIONS, PRESETS, type Operation, type PresetId } from '../content/playground'
+import { DEFAULT_PRESET, OPERATIONS, parseKey, PRESETS, type Operation, type PresetId } from '../content/playground'
 import type { ModuleId, OutcomeId } from '../content/types'
 
 export type Route =
@@ -18,12 +18,12 @@ const isPreset = (id = ''): id is PresetId => PRESETS.some((p) => p.id === id)
 
 function playground(op?: string, preset?: string, key?: string): Route {
   if (!isOperation(op)) return { name: 'playground' }
-  const k = Number(key)
+  const k = parseKey(key)
   return {
     name: 'playground',
     op,
     ...(isPreset(preset) && { preset }),
-    ...(key !== undefined && Number.isInteger(k) && k >= 0 && k <= 999 && { key: k }),
+    ...(k !== null && { key: k }),
   }
 }
 

@@ -1896,6 +1896,18 @@ table.mini {
   gap: 16px;
 }
 
+.interface {
+  display: grid;
+  gap: 8px;
+}
+
+.interface summary {
+  width: fit-content;
+  font-weight: 500;
+  color: var(--accent);
+  cursor: pointer;
+}
+
 .narration-step {
   font-size: 0.72rem;
   font-weight: 600;
@@ -2537,8 +2549,10 @@ table.mini {
 
 .tour-card {
   position: absolute;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  max-height: calc(100vh - 24px);
   padding: 18px 20px;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -2564,7 +2578,15 @@ table.mini {
   outline: none;
 }
 
-.tour-body {
+/* When the card is taller than the window, only the text scrolls; the buttons always stay in view. */
+.tour-card > * {
+  flex: none;
+}
+
+.tour-card > .tour-body {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   color: var(--ink-2);
 }
 

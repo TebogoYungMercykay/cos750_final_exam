@@ -28,7 +28,7 @@ interface TreeViewProps {
   onSlot?: (slot: PlacedSlot) => void
   slotState?: (slot: PlacedSlot) => 'correct' | 'wrong' | ''
   compact?: boolean
-  /** Short labels drawn above nodes, such as "root" or "45 < 50, go left". */
+  /** Short labels drawn above nodes, such as "root" or "45 < 50, go left". Room for them is kept even on steps with none, so the drawing never jumps. */
   notes?: (key: number) => string | null | undefined
   /** Labels each row with its depth, for teaching depth and height. */
   ruler?: boolean
@@ -73,9 +73,14 @@ export function TreeView({
   const gapX = slots || nulls ? 42 : compact ? 46 : 58
   const gapY = compact ? 64 : 76
   const r = compact ? 17 : 21
-  const top = PAD + (noted.length ? NOTE_ROOM : 0)
-  const left = PAD + (ruler ? RULER_ROOM : 0)
-  const width = Math.max(1, layout.columns) * gapX + left + PAD
+  const noteWidth = (text: string) => text.length * NOTE_CHAR + 16
+  const top = PAD + (notes ? NOTE_ROOM : 0)
+  const treeLeft = PAD + (ruler ? RULER_ROOM : 0)
+  const treeWidth = Math.max(1, layout.columns) * gapX + treeLeft + PAD
+  /** A label wider than a small tree widens the drawing instead of being cut off. */
+  const extra = Math.max(0, ...noted.map(({ text }) => noteWidth(text) + 4 - treeWidth))
+  const left = treeLeft + extra / 2
+  const width = treeWidth + extra
   const height = layout.depth * gapY + top + PAD
   const x = (column: number) => left + column * gapX + gapX / 2
   const y = (depth: number) => top + depth * gapY
@@ -194,7 +199,7 @@ export function TreeView({
 
         {noted.map(({ key, text }) => {
           const n = at.get(key)!
-          const w = text.length * NOTE_CHAR + 16
+          const w = noteWidth(text)
           const cx = Math.min(Math.max(x(n.column), w / 2 + 2), width - w / 2 - 2)
           const cy = y(n.depth) - r - 15
           return (

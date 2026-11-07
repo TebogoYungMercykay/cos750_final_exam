@@ -47,8 +47,11 @@ export default function App() {
       first.current = false
       return
     }
+    const main = mainRef.current
+    // A screen that moved focus to something of its own as it opened, such as an animation it started, keeps it.
+    if (main?.contains(document.activeElement) && document.activeElement !== main) return
     window.scrollTo({ top: 0 })
-    mainRef.current?.focus({ preventScroll: true })
+    main?.focus({ preventScroll: true })
   }, [path])
 
   return (

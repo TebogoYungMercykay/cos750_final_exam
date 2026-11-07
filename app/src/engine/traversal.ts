@@ -35,42 +35,13 @@ function stackFrontier(): Frontier {
   }
 }
 
-export interface SearchStep {
-  visited: number | null
-  order: number[]
-  frontier: number[]
-  found: boolean
-}
-
 /**
- * Uninformed tree search: one loop, and the frontier alone decides whether
- * the walk is breadth first (queue) or depth first (stack). The first step is
- * the start state, before any node is visited.
+ * The waiting list of uninformed tree search. A queue makes the walk breadth
+ * first, a stack depth first; the loop that uses it is `frontierTrace` in
+ * traces.ts, so the order shown is the order these objects produce.
  */
 export function makeFrontier(kind: FrontierKind): Frontier {
   return kind === 'queue' ? queueFrontier() : stackFrontier()
-}
-
-export function* uninformedSearch(root: Tree, kind: FrontierKind, target?: number): Generator<SearchStep> {
-  const frontier = makeFrontier(kind)
-  const order: number[] = []
-  if (root !== null) frontier.addChildren([root])
-  yield { visited: null, order: [], frontier: frontier.keys(), found: false }
-
-  while (!frontier.isEmpty()) {
-    const current = frontier.remove()
-    order.push(current.key)
-    const found = current.key === target
-    if (!found) {
-      frontier.addChildren([current.left, current.right].filter((c) => c !== null))
-    }
-    yield { visited: current.key, order: [...order], frontier: frontier.keys(), found }
-    if (found) return
-  }
-}
-
-export function searchSteps(root: Tree, kind: FrontierKind, target?: number): SearchStep[] {
-  return Array.from(uninformedSearch(root, kind, target))
 }
 
 export type DepthFirstOrder = 'pre' | 'in' | 'post'

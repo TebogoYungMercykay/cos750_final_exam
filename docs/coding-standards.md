@@ -34,7 +34,7 @@ cos750_final_exam/
     └── src/
         ├── engine/             # plain TypeScript, no React
         │   ├── bst.ts          # immutable tree operations and queries
-        │   ├── traversal.ts    # uninformed search with a queue or stack frontier, depth first orders
+        │   ├── traversal.ts    # the queue and stack frontiers, depth first orders and levels
         │   ├── traces.ts       # step traces, Java code and line notes for search, insert, traversals and the frontier loop
         │   ├── layout.ts       # node and empty-slot positions for drawing
         │   └── random.ts       # seeded randomness and random trees

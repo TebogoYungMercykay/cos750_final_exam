@@ -6,6 +6,7 @@ import {
   leaves,
   node,
   parentOf,
+  violatedAncestor,
   type Tree,
   type TreeNode,
 } from '../engine/bst'
@@ -297,6 +298,17 @@ function maybeBroken(tree: TreeNode, rng: Rng): Tree {
   return withKeyChanged(tree, target.key, key)
 }
 
+/** Says which node a broken key is on the wrong side of: its own parent, or an ancestor further up. */
+function whyBroken(tree: Tree, key: number): string {
+  const { ancestor, parent } = violatedAncestor(tree, key)!
+  const size = key > ancestor ? 'larger' : 'smaller'
+  const belongs = key > ancestor ? 'right' : 'left'
+  const is = belongs === 'right' ? 'left' : 'right'
+  return ancestor === parent
+    ? `it is ${size} than its parent, ${parent}, so it belongs on the ${belongs}, but it is on the ${is}.`
+    : `it is fine against its parent, ${parent}, but it is ${size} than ${ancestor} further up, so it belongs in the ${belongs} subtree of ${ancestor}, not the ${is}.`
+}
+
 type Generator = (rng: Rng) => Question
 
 export const GENERATORS: Record<OutcomeId, Generator> = {
@@ -372,12 +384,12 @@ export const GENERATORS: Record<OutcomeId, Generator> = {
               '',
               'Check each node against all its ancestors. Every key is on the correct side, so nothing breaks the rule.',
             ]
-          : [`Look at ${violation}: it is on the wrong side of one of its ancestors, not only its parent.`, ''],
+          : [`Look at ${violation}: ${whyBroken(tree, violation)}`, ''],
       hints: ['Check every node against ALL its ancestors, not only its parent.'],
       explain:
         violation === null
           ? 'Every node satisfies left < node < right for its whole subtree.'
-          : `${violation} is on the wrong side of one of its ancestors, so the tree is not a BST.`,
+          : `${violation} breaks the rule, so the tree is not a BST: ${whyBroken(tree, violation)}`,
     }
   },
   LO3: (rng) => {

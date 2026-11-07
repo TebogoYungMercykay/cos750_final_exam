@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { depthFirstOrder } from '../engine/traversal'
-import { findNode, firstViolation, fromKeys, height, leaves, searchPath, type Tree } from '../engine/bst'
+import {
+  findNode,
+  firstViolation,
+  fromKeys,
+  height,
+  leaves,
+  searchPath,
+  violatedAncestor,
+  type Tree,
+} from '../engine/bst'
 import { seeded } from '../engine/random'
 import { traversalOrder, TRAVERSALS } from '../engine/traces'
 import { BANK, GENERATORS, needsGuidance, questionFor, readinessSet, WARMUP } from './assessment'
@@ -134,6 +143,24 @@ describe('generated questions', () => {
         expect(Number(q.options[q.answer])).toBe(searchPath(q.tree ?? null, key).compared.length)
       }
     }
+  })
+
+  it('names the node a broken key is really on the wrong side of', () => {
+    const phrases = new Set<string>()
+    for (let seed = 1; seed <= 150; seed++) {
+      const q = GENERATORS.LO2(seeded(seed))
+      if (q.type !== 'mcq' || q.violation === undefined) continue
+      const culprit = violatedAncestor(q.tree ?? null, q.violation)!
+      const text = q.feedback[0]
+      if (culprit.ancestor === culprit.parent) {
+        expect(text, q.id).toContain(`than its parent, ${culprit.parent}, so it belongs on the`)
+        phrases.add('parent')
+      } else {
+        expect(text, q.id).toContain(`than ${culprit.ancestor} further up`)
+        phrases.add('further up')
+      }
+    }
+    expect(phrases).toEqual(new Set(['parent', 'further up']))
   })
 
   it('produces both valid and broken trees for the BST rule', () => {

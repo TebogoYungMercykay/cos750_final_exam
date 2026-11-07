@@ -119,7 +119,7 @@ export function StepPlayer({ tree, kind, keyValue = 0, callout }: StepPlayerProp
     if (step.queue.includes(key)) return 'queue'
     return ''
   }
-  const note = (key: number) => (guided && key === step.current ? step.note : undefined)
+  const note = (key: number) => (key === step.current ? step.note : undefined)
   const title = `${TRACE_TITLES[kind]}${kind === 'search' || kind === 'insert' ? `, key ${keyValue}` : ''}`
   const traversal = kind in TRAVERSALS ? TRAVERSALS[kind as keyof typeof TRAVERSALS] : null
   const ModeIcon = guided ? LifeBuoy : Compass
@@ -149,7 +149,7 @@ export function StepPlayer({ tree, kind, keyValue = 0, callout }: StepPlayerProp
             label={`${TRACE_TITLES[kind]} in progress`}
             state={state}
             badge={ordered ? (key) => rank.get(key) : undefined}
-            notes={note}
+            notes={guided ? note : undefined}
           />
           <Legend kind={kind} />
         </div>

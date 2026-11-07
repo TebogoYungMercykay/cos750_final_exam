@@ -187,6 +187,36 @@ test.describe('tours', () => {
     await expect(tour(page)).toContainText('Welcome to TreeTutor')
   })
 
+  test('every card stays on screen, even in a short window with the largest text', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 600 })
+    await asLearner(page, { mode: 'guided', textSize: 'larger', toursSeen: [] })
+    await page.goto('./')
+    for (let i = 1; i <= 9; i++) {
+      await expect(tour(page)).toContainText(`${i} of 9`)
+      const action = button(page, i === 9 ? 'Done' : 'Next')
+      await expect(action).toBeInViewport({ ratio: 1 })
+      if (i === 6) {
+        const scan = await new AxeBuilder({ page }).include('.tour-card').analyze()
+        expect(scan.violations.map((v) => v.id)).toEqual([])
+      }
+      await action.click()
+    }
+    await expect(tour(page)).toBeHidden()
+  })
+
+  test('focus returns to where it was after tours that run one after another', async ({ page }) => {
+    await asLearner(page)
+    await page.goto('./#/playground/search/sorted/60')
+    const help = button(page, 'Show me around this screen')
+    await help.click()
+    await expect(tour(page)).toContainText('The playground')
+    await page.keyboard.press('Escape')
+    await expect(tour(page)).toContainText('Reading an animation')
+    await page.keyboard.press('Escape')
+    await expect(tour(page)).toBeHidden()
+    await expect(help).toBeFocused()
+  })
+
   test('the first animation explains itself, and the tour passes an accessibility scan', async ({ page }) => {
     await asLearner(page, { toursSeen: ALL_TOURS.filter((t) => t !== 'player') })
     await page.goto('./#/playground')
@@ -209,17 +239,22 @@ test('guided mode explains every step of an animation', async ({ page }) => {
   await expect(page.locator('.narration')).toContainText('Why:')
 })
 
-test('a demo seed makes the readiness check repeat exactly after a reload', async ({ page }) => {
+test('a demo seed makes generated questions repeat after a reload, and another seed changes them', async ({ page }) => {
   await asLearner(page)
-  const firstQuestion = async () => {
-    await page.goto('./?seed=42#/check')
+  const generatedTree = async (seed: number) => {
+    await page.goto(`./?seed=${seed}#/check`)
+    await page.reload()
     await button(page, 'Start').click()
-    return page.locator('.question-prompt').textContent()
+    await button(page, 'Every node except the root has exactly one parent').click()
+    await button(page, /continue/i).click()
+    await expect(page.getByText('Question 2 of 12')).toBeVisible()
+    return page.locator('.question .tree-key').allTextContents()
   }
-  const once = await firstQuestion()
-  await page.reload()
-  expect(await firstQuestion()).toBe(once)
-  await expect(page.getByText('Demo seed 42: generated questions repeat.')).toBeVisible()
+  const first = await generatedTree(42)
+  expect(first.length).toBeGreaterThan(0)
+  expect(await generatedTree(42)).toEqual(first)
+  expect(await generatedTree(43)).not.toEqual(first)
+  await expect(page.getByText('Demo seed 43: generated questions repeat.')).toBeVisible()
 })
 
 test('a review link opens the playground with its animation already running', async ({ page }) => {
@@ -228,6 +263,24 @@ test('a review link opens the playground with its animation already running', as
   await expect(button(page, 'Sorted input')).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('heading', { name: 'BST search, key 60' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Animation' })).toBeFocused()
+})
+
+test('a review link followed inside the app opens with its animation in view and focused', async ({ page }) => {
+  await asLearner(page)
+  await page.goto('./#/check')
+  await page.evaluate(() => {
+    window.location.hash = '#/playground/search/sorted/60'
+  })
+  const animation = page.getByRole('region', { name: 'Animation' })
+  await expect(animation).toBeFocused()
+  await expect(animation).toBeInViewport({ ratio: 0.5 })
+})
+
+test('an insert link adds the key to the tree it shows', async ({ page }) => {
+  await asLearner(page)
+  await page.goto('./#/playground/insert/lecture/7')
+  await expect(page.getByText('Using your own tree.')).toBeVisible()
+  await expect(page.getByRole('img', { name: /Your binary search tree\..*Depth 3: 7\./ })).toBeVisible()
 })
 
 test('a wrong option explains the misconception behind it', async ({ page }) => {

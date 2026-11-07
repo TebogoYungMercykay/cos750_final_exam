@@ -6,7 +6,7 @@ import { StepPlayer } from '../components/StepPlayer'
 import { TourLauncher } from '../components/TourLauncher'
 import { TreeView } from '../components/TreeView'
 import { fromKeys, insert, size, type Tree } from '../engine/bst'
-import { DEFAULT_PRESET, OPERATIONS, PRESETS, type Operation, type PresetId } from '../content/playground'
+import { DEFAULT_PRESET, OPERATIONS, parseKey, PRESETS, type Operation, type PresetId } from '../content/playground'
 import { depthFirstOrder } from '../engine/traversal'
 import { href } from '../state/router'
 
@@ -22,20 +22,24 @@ interface PlaygroundProps {
 }
 
 export function Playground({ op, preset: startPreset = DEFAULT_PRESET, keyValue = DEFAULT_KEY }: PlaygroundProps) {
-  const [tree, setTree] = useState<Tree>(() => fromKeys(keysOf(startPreset)))
+  const [opening] = useState(() => {
+    const before = fromKeys(keysOf(startPreset))
+    const after = op === 'insert' ? insert(before, keyValue) : before
+    return { before, after }
+  })
+  const [tree, setTree] = useState<Tree>(opening.after)
   /** The preset the tree still matches; null once the learner has added keys, inserted or cleared. */
-  const [preset, setPreset] = useState<PresetId | null>(startPreset)
+  const [preset, setPreset] = useState<PresetId | null>(opening.after === opening.before ? startPreset : null)
   const [entry, setEntry] = useState('')
   const [message, setMessage] = useState('')
   const [operation, setOperation] = useState<Operation>(op ?? 'search')
   const [keyText, setKeyText] = useState(String(keyValue))
-  const [run, setRun] = useState<{ op: Operation; key: number; tree: Tree } | null>(() =>
-    op ? { op, key: keyValue, tree: fromKeys(keysOf(startPreset)) } : null,
+  const [run, setRun] = useState<{ op: Operation; key: number; tree: Tree } | null>(
+    op ? { op, key: keyValue, tree: opening.before } : null,
   )
   const runRef = useRef<HTMLElement>(null)
   const needsKey = operation === 'search' || operation === 'insert'
-  const key = Number(keyText)
-  const keyValid = keyText.trim() !== '' && Number.isInteger(key) && key >= 0 && key <= 999
+  const key = parseKey(keyText)
 
   useEffect(() => {
     if (run) reveal(runRef.current)
@@ -68,14 +72,15 @@ export function Playground({ op, preset: startPreset = DEFAULT_PRESET, keyValue 
   }
 
   const start = () => {
-    if (needsKey && !keyValid) {
+    if (needsKey && key === null) {
       setMessage('Enter a whole number from 0 to 999 as the key.')
       return
     }
     setMessage('')
-    setRun({ op: operation, key, tree })
+    const runKey = key ?? DEFAULT_KEY
+    setRun({ op: operation, key: runKey, tree })
     if (operation === 'insert' && size(tree) < MAX_NODES) {
-      const grown = insert(tree, key)
+      const grown = insert(tree, runKey)
       if (grown !== tree) setPreset(null)
       setTree(grown)
     }

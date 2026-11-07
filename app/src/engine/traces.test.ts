@@ -13,7 +13,7 @@ import {
   type TraceStep,
   type TraversalKind,
 } from './traces'
-import { depthFirstOrder, levels, searchSteps } from './traversal'
+import { depthFirstOrder, levels } from './traversal'
 
 const uniqueKeys = fc.uniqueArray(fc.integer({ min: 1, max: 99 }), { minLength: 1, maxLength: 25 })
 const kinds = fc.constantFrom<TraversalKind>('pre', 'in', 'post', 'level')
@@ -90,14 +90,23 @@ describe('traversal traces', () => {
 })
 
 describe('frontierTrace', () => {
-  it('visits in exactly the order of the search loop, for either frontier', () => {
+  const sample = fromKeys([50, 30, 70, 20, 40, 60, 80, 45, 65])
+
+  it('starts with only the root waiting', () => {
+    expect(frontierTrace(sample, 'bfs')[0]).toMatchObject({ queue: [50], output: [] })
+  })
+
+  it('lists waiting nodes next one out first, whichever frontier is used', () => {
+    const after = (kind: 'bfs' | 'dfs') => frontierTrace(sample, kind).find((s) => s.current === 30 && s.line === 5)!
+    expect(after('bfs').queue).toEqual([70, 20, 40])
+    expect(after('dfs').queue).toEqual([20, 40, 70])
+  })
+
+  it('visits every node exactly once and ends with nothing waiting', () => {
     fc.assert(
       fc.property(uniqueKeys, fc.constantFrom<'bfs' | 'dfs'>('bfs', 'dfs'), (keys, kind) => {
-        const tree = fromKeys(keys)
-        const steps = frontierTrace(tree, kind)
-        const loop = searchSteps(tree, kind === 'bfs' ? 'queue' : 'stack')
-        const last = steps.at(-1)!
-        return last.done === true && last.output.join() === loop.at(-1)!.order.join() && last.queue.length === 0
+        const last = frontierTrace(fromKeys(keys), kind).at(-1)!
+        return last.done === true && new Set(last.output).size === keys.length && last.queue.length === 0
       }),
     )
   })

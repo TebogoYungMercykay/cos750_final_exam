@@ -32,14 +32,25 @@ const recursive = (name: string, body: string[]) => [
   '}',
 ]
 
-const frontierLoop = (type: string) => [
-  `void search(Node root, ${type} frontier) {`,
+/** One loop for both walks: `frontier` is any class implementing FRONTIER_INTERFACE. */
+const FRONTIER_LOOP = [
+  'void search(Node root, Frontier frontier) {',
   '  frontier.add(root);',
   '  while (!frontier.isEmpty()) {',
   '    Node node = frontier.remove();',
   '    visit(node);',
   '    frontier.addChildren(node);',
   '  }',
+  '}',
+]
+
+/** The interface the frontier loop is written against; a queue class and a stack class implement it. */
+export const FRONTIER_INTERFACE = [
+  'interface Frontier {',
+  '  void add(Node node);',
+  '  Node remove();               // queue: the front; stack: the top',
+  '  boolean isEmpty();',
+  '  void addChildren(Node node); // stack: right child first',
   '}',
 ]
 
@@ -64,8 +75,8 @@ export const CODE: Record<TraceKind, string[]> = {
     '  }',
     '}',
   ],
-  bfs: frontierLoop('Queue'),
-  dfs: frontierLoop('Stack'),
+  bfs: FRONTIER_LOOP,
+  dfs: FRONTIER_LOOP,
   search: [
     'Node search(Node node, int key) {',
     '  if (node == null) return null;',
@@ -329,8 +340,9 @@ export function traversalTrace(root: Tree, kind: TraversalKind): TraceStep[] {
 }
 
 /**
- * Uninformed tree search as one loop, using the engine's own frontier objects,
- * so the order shown is exactly the order `uninformedSearch` produces.
+ * Uninformed tree search as one loop over the engine's own frontier objects:
+ * the queue or the stack alone decides whether the walk is breadth first or
+ * depth first.
  */
 export function frontierTrace(root: Tree, kind: FrontierTraceKind): TraceStep[] {
   const fk = FRONTIER_OF[kind]

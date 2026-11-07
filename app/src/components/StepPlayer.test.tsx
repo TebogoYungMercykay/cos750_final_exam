@@ -32,7 +32,10 @@ function setup(mode: Mode) {
 const narration = () => document.querySelector('.narration')!
 const activeLine = () => document.querySelector('.code .is-active')
 
-afterEach(() => localStorage.clear())
+afterEach(() => {
+  localStorage.clear()
+  vi.unstubAllGlobals()
+})
 
 describe('StepPlayer in standard mode', () => {
   it('shows only the steps that change something, without reasons or notes', async () => {
@@ -98,6 +101,5 @@ describe('StepPlayer narration', () => {
     expect(said.at(-1)).toBe('45 > 30, so the key can only be in the RIGHT subtree.')
     unmount()
     expect(cancel).toHaveBeenCalled()
-    vi.unstubAllGlobals()
   })
 })
