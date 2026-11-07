@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { FrontierPlayer } from '../components/FrontierPlayer'
 import { reveal } from '../components/reveal'
 import { StepPlayer } from '../components/StepPlayer'
-import { TourLauncher } from '../components/TourLauncher'
 import { TreeView } from '../components/TreeView'
 import { fromKeys, insert, size, type Tree } from '../engine/bst'
 import { DEFAULT_PRESET, OPERATIONS, parseKey, PRESETS, type Operation, type PresetId } from '../content/playground'
@@ -99,7 +98,6 @@ export function Playground({ op, preset: startPreset = DEFAULT_PRESET, keyValue 
         <p className="lede">Build any BST of up to {MAX_NODES} nodes, then watch an operation run step by step.</p>
       </header>
 
-      <TourLauncher id="playground" />
       <div className="playground">
         <section className="card" aria-labelledby="build-title" data-tour="pg-build">
           <h2 id="build-title" className="display-4">

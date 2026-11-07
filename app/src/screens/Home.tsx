@@ -146,7 +146,7 @@ export function Home() {
 
   return (
     <>
-      <TourLauncher id="home" />
+      <TourLauncher />
       <section className="hero">
         <div className="hero-copy rise">
           <p className="eyebrow">

@@ -61,8 +61,6 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       saveReflection: (id, text) => setProgress((p) => ({ ...p, reflections: { ...p.reflections, [id]: text } })),
       addAssessment: (entry) => setProgress((p) => ({ ...p, assessments: [...p.assessments, entry] })),
       solvedPractice: () => setProgress((p) => ({ ...p, practiceSolved: p.practiceSolved + 1, xp: p.xp + 5 })),
-      markTourSeen: (id) =>
-        setProgress((p) => (p.toursSeen.includes(id) ? p : { ...p, toursSeen: [...p.toursSeen, id] })),
       reset: () => setProgress((p) => ({ ...fresh(), theme: p.theme, textSize: p.textSize, narrate: p.narrate })),
     }),
     [progress, toast, award, dismissToast],

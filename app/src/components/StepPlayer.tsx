@@ -16,7 +16,6 @@ import {
 } from '../engine/traces'
 import { useProgress } from '../state/progress'
 import { Legend } from './LessonParts'
-import { TourLauncher } from './TourLauncher'
 import { TreeView, type NodeState } from './TreeView'
 
 interface StepPlayerProps {
@@ -127,7 +126,6 @@ export function StepPlayer({ tree, kind, keyValue = 0, callout }: StepPlayerProp
 
   return (
     <div className="player">
-      <TourLauncher id="player" />
       <div className="player-head">
         <h4>{title}</h4>
         <div className="row">

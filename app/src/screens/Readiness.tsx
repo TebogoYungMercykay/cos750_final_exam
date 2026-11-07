@@ -86,7 +86,7 @@ export function Readiness() {
               {progress.assessments.length > 1 ? 's' : ''}.
             </p>
           )}
-          <div className="row">
+          <div className="row" data-tour="check-start">
             <button type="button" className="btn btn-primary btn-lg" onClick={begin}>
               Start
               <ArrowRight size={18} aria-hidden="true" />

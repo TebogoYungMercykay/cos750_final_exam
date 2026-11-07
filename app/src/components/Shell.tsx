@@ -17,7 +17,7 @@ import { BADGES } from '../content/badges'
 import { MODES } from '../content/modes'
 import { useProgress } from '../state/progress'
 import { href, type Route } from '../state/router'
-import { tours, useTours } from '../state/tour'
+import { tours } from '../state/tour'
 
 export function BrandMark() {
   return (
@@ -36,7 +36,6 @@ export function Header({ current }: { current: Route['name'] }) {
   const { progress, update } = useProgress()
   const guided = progress.mode === 'guided'
   const dark = progress.theme === 'dark'
-  const { available } = useTours()
   const mode = MODES[progress.mode]
 
   return (
@@ -67,14 +66,14 @@ export function Header({ current }: { current: Route['name'] }) {
             </span>
           </>
         )}
-        {available.length > 0 && (
+        {progress.name && (
           <button
             type="button"
             className="btn btn-icon btn-quiet"
             data-tour="help"
-            onClick={tours.replay}
-            aria-label="Show me around this screen"
-            title="Show me around this screen"
+            onClick={tours.start}
+            aria-label="Take the tour of the app"
+            title="Take the tour of the app"
           >
             <CircleHelp size={18} aria-hidden="true" />
           </button>

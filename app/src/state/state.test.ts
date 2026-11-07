@@ -84,6 +84,13 @@ describe('saved progress', () => {
     expect(load()).toEqual({ ...fresh(), name: 'Lebo', xp: 40 })
   })
 
+  it('counts the tour as done for a learner who saw the old per-screen tours, and drops that field', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ name: 'Lebo', toursSeen: ['home'] }))
+    expect(load()).toEqual({ ...fresh(), name: 'Lebo', tourDone: true })
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ name: 'Lebo', toursSeen: [] }))
+    expect(load().tourDone).toBe(false)
+  })
+
   it('starts fresh when the save is unreadable or storage is blocked', () => {
     localStorage.setItem(STORAGE_KEY, '{not json')
     expect(load()).toEqual(fresh())
