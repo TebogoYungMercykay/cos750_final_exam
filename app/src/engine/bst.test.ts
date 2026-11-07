@@ -5,10 +5,10 @@ import {
   firstViolation,
   fromKeys,
   fromSpec,
+  height,
   insert,
   isBst,
   leaves,
-  levelCount,
   node,
   nullLinks,
   searchPath,
@@ -67,13 +67,13 @@ describe('isBst', () => {
   })
 })
 
-describe('levelCount', () => {
+describe('height', () => {
   it('grows by one per key when keys arrive sorted', () => {
-    expect(levelCount(fromKeys([1, 2, 3, 4, 5]))).toBe(5)
+    expect(height(fromKeys([1, 2, 3, 4, 5]))).toBe(5)
   })
 
   it('stays small when keys arrive in a balancing order', () => {
-    expect(levelCount(fromKeys([4, 2, 6, 1, 3, 5, 7]))).toBe(3)
+    expect(height(fromKeys([4, 2, 6, 1, 3, 5, 7]))).toBe(3)
   })
 })
 
@@ -141,7 +141,7 @@ describe('properties of any tree built by insert', () => {
         const tree = fromKeys(keys)
         return keys.every((key) => {
           const { found, compared } = searchPath(tree, key)
-          return found && compared.length <= levelCount(tree)
+          return found && compared.length <= height(tree)
         })
       }),
     )

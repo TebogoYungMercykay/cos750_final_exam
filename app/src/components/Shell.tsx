@@ -41,10 +41,10 @@ export function Header({ current }: { current: Route['name'] }) {
 
   return (
     <header className="topbar">
-      <a className="brand" href="#/" aria-label="TreeTutor home">
+      <a className="brand" href="#/" aria-label="TreeTutor, the COS212 app: home">
         <BrandMark />
         <span className="brand-name">TreeTutor</span>
-        <span className="brand-tag">COS212</span>
+        <span className="brand-tag">COS212 app</span>
       </a>
       {progress.name && <Tabs current={current} />}
       <div className="topbar-actions">

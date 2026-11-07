@@ -54,7 +54,7 @@ cos750_final_exam/
         │   ├── rng.ts          # randomness for generated questions; ?seed=42 makes a demo repeat
         │   ├── router.ts       # hash routes
         │   └── tour.ts         # which tour is showing, and which are waiting
-        ├── components/         # tree view, step player, question card, lesson parts, tour, shell, background; reveal.ts
+        ├── components/         # tree view, step player, question card, lesson parts, tour, shell, background, lightning tree; reveal.ts, lightning.ts
         ├── screens/            # one file per screen
         ├── styles.css          # design tokens and every style
         └── test/setup.ts
@@ -118,7 +118,7 @@ The same rule applies to the content of commit messages in reverse: they describ
 
 1. **The engine is the single source of truth.** Animations, generated questions and marking all call the engine. Never hand-type an answer the engine can compute.
 2. **Trees are immutable.** Every operation returns a new tree and leaves its input untouched; an insert of an existing key returns the same object.
-3. **Authored content must agree with the engine.** Every question passes the content tests: answers exist in their trees, a "valid BST?" answer matches `firstViolation`, and any traversal written out in an explanation equals `traversalOrder`. Fix the content, never the test.
+3. **Authored content must agree with the engine.** Every question passes the content tests: answers exist in their trees, a "valid BST?" answer matches `firstViolation`, and any traversal written out in an explanation equals `traversalOrder`. Heights and levels count as COS212 does (Drozdek, section 6.1): the root is on level 1 and the height of a tree is its number of levels. Fix the content, never the test.
 4. **Every outcome stays aligned.** Each learning outcome has one lesson with a guided try, a reflection, takeaways and a checkpoint of at least four questions, plus bank items and a generator for the readiness check. Every question carries a Bloom level, and it must be one of its outcome's levels. Every wrong multiple choice option has feedback aimed at the misconception behind it. Every lesson covers all nine of Gagné's events, including a recall of prior learning and a worked example. The content tests enforce all of this.
 5. **Randomness is injected.** Anything random takes an `Rng` argument. Tests pass `seeded(n)` so every failure can be replayed, and screens pass `appRng`, so `?seed=42` in the address makes every generated question repeat for a demonstration.
 6. **Scoring lives in one place.** Credit per attempt, the 10-answer mastery window and the 70% readiness threshold are constants in `state/scoring.ts`, never literals in a screen.

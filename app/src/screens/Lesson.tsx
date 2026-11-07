@@ -15,7 +15,7 @@ import { QuestionCard, Quiz } from '../components/QuestionCard'
 import { StepPlayer } from '../components/StepPlayer'
 import { TourLauncher } from '../components/TourLauncher'
 import { TreeView } from '../components/TreeView'
-import { MODULES, OUTCOMES } from '../content/modules'
+import { MODULES, OUTCOMES, PARTS } from '../content/modules'
 import type { Module, Section } from '../content/types'
 import { useProgress } from '../state/progress'
 import { href } from '../state/router'
@@ -63,7 +63,7 @@ function SectionBody({ section, onTried }: { section: Section; onTried: () => vo
       return (
         <>
           <p className="muted">{section.caption}</p>
-          <FrontierPlayer tree={section.tree} />
+          <FrontierPlayer tree={section.tree} keyValue={section.key} kind={section.kind} />
         </>
       )
     case 'compare':
@@ -120,7 +120,7 @@ export function Lesson({ module: m }: { module: Module }) {
       <header className="page-head">
         <p className="eyebrow">
           <Icon size={16} aria-hidden="true" />
-          Lesson {position + 1} of {MODULES.length}
+          Lesson {position + 1} of {MODULES.length}, {PARTS[m.part].name.toLowerCase()}
         </p>
         <h1 className="display-2" tabIndex={-1} ref={headRef}>
           {m.title}

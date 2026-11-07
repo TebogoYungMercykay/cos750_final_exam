@@ -35,11 +35,11 @@ function distinctKeys(count: number, rng: Rng): number[] {
 }
 
 /**
- * A random BST with keys 1 to 99 whose height stays within maxHeight, so it
- * fits on a phone screen. Falls back to a balanced tree if chance keeps
+ * A random BST with keys 1 to 99 whose height, in levels, stays within
+ * maxHeight, so it fits on a phone screen. Falls back to a balanced tree if chance keeps
  * producing tall ones.
  */
-export function randomTree(count: number, rng: Rng, maxHeight = 3): Tree {
+export function randomTree(count: number, rng: Rng, maxHeight = 4): Tree {
   for (let attempt = 0; attempt < 200; attempt++) {
     const tree = fromKeys(distinctKeys(count, rng))
     if (height(tree) <= maxHeight) return tree

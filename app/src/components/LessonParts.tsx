@@ -1,6 +1,6 @@
 import { Check, NotebookPen } from 'lucide-react'
 import { useState } from 'react'
-import { childCount, depthOf, findNode, height, parentOf, size, type Tree } from '../engine/bst'
+import { childCount, findNode, height, levelOf, parentOf, size, type Tree } from '../engine/bst'
 import type { TraceKind } from '../engine/traces'
 import { useProgress } from '../state/progress'
 import { TreeView, type NodeState } from './TreeView'
@@ -96,8 +96,8 @@ export function Explorer({ tree, caption }: { tree: Tree; caption: string }) {
                 </dd>
               </div>
               <div>
-                <dt>Depth</dt>
-                <dd>{depthOf(tree, n.key)}</dd>
+                <dt>Level</dt>
+                <dd>{levelOf(tree, n.key)}</dd>
               </div>
               <div>
                 <dt>Subtree</dt>
@@ -107,7 +107,7 @@ export function Explorer({ tree, caption }: { tree: Tree; caption: string }) {
               </div>
             </dl>
           ) : (
-            <p>Select a node to see its parent, children, depth and subtree.</p>
+            <p>Select a node to see its parent, children, level and subtree.</p>
           )}
           <Legend kind="explore" />
         </div>

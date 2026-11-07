@@ -84,9 +84,9 @@ test('lesson 1: explore a node, then answer the quick check from the keyboard', 
     page.getByText('Four Node objects and 5 null links: 3.left, 6.left, 6.right, 10.left, 10.right.'),
   ).toBeVisible()
   await button(page, 'Next').click()
-  await expect(page.getByText('Height 3: the deepest node, 35, is 3 edges below the root.')).toBeVisible()
+  await expect(page.getByText('Height 4: the deepest node, 35, is on level 4.')).toBeVisible()
   await button(page, 'Next').click()
-  await expect(page.getByText('Click the node with the greatest depth.')).toBeVisible()
+  await expect(page.getByText('Click the node on the deepest level.')).toBeVisible()
   await button(page, 'Node 25').focus()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('status')).toContainText('Correct.')
@@ -98,7 +98,7 @@ test('lesson 5: the same loop walks breadth first with a queue and depth first w
   await asLearner(page)
   await page.goto('./#/lesson/m5')
   await button(page, 'Start the lesson').click()
-  for (let i = 0; i < 5; i++) await button(page, 'Next').click()
+  for (let i = 0; i < 6; i++) await button(page, 'Next').click()
   await expect(page.getByRole('heading', { name: 'Test your prediction: swap the queue for a stack' })).toBeVisible()
 
   await walkToEnd(page)
@@ -280,7 +280,7 @@ test('an insert link adds the key to the tree it shows', async ({ page }) => {
   await asLearner(page)
   await page.goto('./#/playground/insert/lecture/7')
   await expect(page.getByText('Using your own tree.')).toBeVisible()
-  await expect(page.getByRole('img', { name: /Your binary search tree\..*Depth 3: 7\./ })).toBeVisible()
+  await expect(page.getByRole('img', { name: /Your binary search tree\..*Level 4: 7\./ })).toBeVisible()
 })
 
 test('a wrong option explains the misconception behind it', async ({ page }) => {

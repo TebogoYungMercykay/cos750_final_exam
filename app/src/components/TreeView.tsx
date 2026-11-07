@@ -30,7 +30,7 @@ interface TreeViewProps {
   compact?: boolean
   /** Short labels drawn above nodes, such as "root" or "45 < 50, go left". Room for them is kept even on steps with none, so the drawing never jumps. */
   notes?: (key: number) => string | null | undefined
-  /** Labels each row with its depth, for teaching depth and height. */
+  /** Labels each row with its level, the root's being 1, for teaching levels and height. */
   ruler?: boolean
   /** Draws every empty child link as a dashed null reference. */
   nulls?: boolean
@@ -87,7 +87,7 @@ export function TreeView({
   const at = new Map(layout.nodes.map((n) => [n.key, n]))
   const interactive = Boolean(onNode || onSlot)
   const description = [
-    ...levels(tree).map((keys, i) => `Depth ${i}: ${keys.join(', ')}.`),
+    ...levels(tree).map((keys, i) => `Level ${i + 1}: ${keys.join(', ')}.`),
     ...noted.map(({ key, text }) => `${key}: ${text}.`),
     ...(nulls ? [`${layout.slots.length} null links, drawn dashed.`] : []),
   ].join(' ')
@@ -106,7 +106,7 @@ export function TreeView({
             <g key={depth} className="tree-ruler">
               <line x1={left - 8} x2={width - PAD / 2} y1={y(depth)} y2={y(depth)} />
               <text x={PAD / 2} y={y(depth)} dy="0.35em">
-                depth {depth}
+                level {depth + 1}
               </text>
             </g>
           ))}

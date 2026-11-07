@@ -8,20 +8,30 @@ const FRONTIERS: Record<FrontierTraceKind, string> = {
   dfs: 'Depth first, using a stack',
 }
 
+interface FrontierPlayerProps {
+  tree: Tree
+  keyValue: number
+  /** Show one frontier only, with no switch. */
+  kind?: FrontierTraceKind
+}
+
 /** One search loop where only the frontier changes: the contrast between breadth first and depth first. */
-export function FrontierPlayer({ tree }: { tree: Tree }) {
-  const [kind, setKind] = useState<FrontierTraceKind>('bfs')
+export function FrontierPlayer({ tree, keyValue, kind: fixed }: FrontierPlayerProps) {
+  const [chosen, setKind] = useState<FrontierTraceKind>('bfs')
+  const kind = fixed ?? chosen
   return (
     <div className="frontier">
-      <fieldset className="segmented">
-        <legend className="visually-hidden">Frontier</legend>
-        {(Object.keys(FRONTIERS) as FrontierTraceKind[]).map((k) => (
-          <label key={k} className={kind === k ? 'is-on' : undefined}>
-            <input type="radio" name="frontier" checked={kind === k} onChange={() => setKind(k)} />
-            {FRONTIERS[k]}
-          </label>
-        ))}
-      </fieldset>
+      {!fixed && (
+        <fieldset className="segmented">
+          <legend className="visually-hidden">Frontier</legend>
+          {(Object.keys(FRONTIERS) as FrontierTraceKind[]).map((k) => (
+            <label key={k} className={kind === k ? 'is-on' : undefined}>
+              <input type="radio" name="frontier" checked={kind === k} onChange={() => setKind(k)} />
+              {FRONTIERS[k]}
+            </label>
+          ))}
+        </fieldset>
+      )}
       <details className="interface">
         <summary>
           The <code>Frontier</code> interface both walks use
@@ -32,7 +42,7 @@ export function FrontierPlayer({ tree }: { tree: Tree }) {
         </p>
         <pre className="code code-block">{FRONTIER_INTERFACE.join('\n')}</pre>
       </details>
-      <StepPlayer key={kind} tree={tree} kind={kind} />
+      <StepPlayer key={kind} tree={tree} kind={kind} keyValue={keyValue} />
     </div>
   )
 }

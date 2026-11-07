@@ -38,7 +38,7 @@ export function Playground({ op, preset: startPreset = DEFAULT_PRESET, keyValue 
     op ? { op, key: keyValue, tree: opening.before } : null,
   )
   const runRef = useRef<HTMLElement>(null)
-  const needsKey = operation === 'search' || operation === 'insert'
+  const needsKey = operation === 'search' || operation === 'insert' || operation === 'frontier'
   const key = parseKey(keyText)
 
   useEffect(() => {
@@ -213,7 +213,7 @@ export function Playground({ op, preset: startPreset = DEFAULT_PRESET, keyValue 
             tabIndex={-1}
           >
             {run.op === 'frontier' ? (
-              <FrontierPlayer tree={run.tree} />
+              <FrontierPlayer tree={run.tree} keyValue={run.key} />
             ) : (
               <StepPlayer tree={run.tree} kind={run.op} keyValue={run.key} />
             )}

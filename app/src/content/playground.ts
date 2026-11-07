@@ -13,13 +13,13 @@ export type PresetId = (typeof PRESETS)[number]['id']
 export const DEFAULT_PRESET: PresetId = 'lecture'
 
 export const OPERATIONS = [
-  { id: 'search', label: 'Search' },
+  { id: 'search', label: 'BST search' },
   { id: 'insert', label: 'Insert' },
   { id: 'pre', label: 'Pre-order' },
   { id: 'in', label: 'In-order' },
   { id: 'post', label: 'Post-order' },
   { id: 'level', label: 'Level-order' },
-  { id: 'frontier', label: 'Queue or stack' },
+  { id: 'frontier', label: 'Tree search' },
 ] as const
 
 export type Operation = (typeof OPERATIONS)[number]['id']
@@ -47,6 +47,6 @@ export const REVIEW: Record<OutcomeId, Review> = {
   LO2: { op: 'in', preset: 'balanced', label: 'Watch the rule sort the keys' },
   LO3: { op: 'search', preset: 'lecture', key: 12, label: 'Watch a search' },
   LO4: { op: 'pre', preset: 'lecture', label: 'Watch a depth first walk' },
-  LO5: { op: 'frontier', preset: 'lecture', label: 'Watch the queue at work' },
+  LO5: { op: 'frontier', preset: 'lecture', key: 20, label: 'Watch tree search at work' },
   LO6: { op: 'search', preset: 'sorted', key: 60, label: 'Watch a search in a chain' },
 }

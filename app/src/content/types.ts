@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { Tree } from '../engine/bst'
-import type { TraceKind, TraversalKind } from '../engine/traces'
+import type { FrontierTraceKind, TraceKind, TraversalKind } from '../engine/traces'
 
 export type OutcomeId = 'LO1' | 'LO2' | 'LO3' | 'LO4' | 'LO5' | 'LO6'
 export type ModuleId = 'm1' | 'm2' | 'm3' | 'm4' | 'm5' | 'm6'
@@ -82,7 +82,16 @@ export type Section =
       nulls?: boolean
     }
   | { type: 'animate'; title: string; tree: Tree; kind: TraceKind; key?: number; callout?: string }
-  | { type: 'frontier'; title: string; tree: Tree; caption: string }
+  | {
+      type: 'frontier'
+      title: string
+      tree: Tree
+      caption: string
+      /** The key the tree search looks for. A key not in the tree makes it check every node. */
+      key: number
+      /** One frontier only; without it the learner switches between a queue and a stack. */
+      kind?: FrontierTraceKind
+    }
   | { type: 'compare'; title: string; items: { tree: Tree; caption: string }[] }
   | { type: 'try'; title: string; question: Question }
   | { type: 'reflect'; id: string; prompt: string }
@@ -90,9 +99,13 @@ export type Section =
 /** A section's Gagné event, when it differs from the one its type usually plays. */
 export type TaggedSection = Section & { event?: GagneEvent }
 
+/** Which half of the app's choice a lesson teaches: the data structure, the algorithm, or the two together. */
+export type Part = 'structure' | 'algorithm' | 'both'
+
 export interface Module {
   id: ModuleId
   lo: OutcomeId
+  part: Part
   icon: LucideIcon
   minutes: number
   title: string

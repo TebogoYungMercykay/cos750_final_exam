@@ -11,7 +11,7 @@ import {
   type Tree,
 } from '../engine/bst'
 import { seeded } from '../engine/random'
-import { traversalOrder, TRAVERSALS } from '../engine/traces'
+import { frontierTrace, traversalOrder, TRAVERSALS } from '../engine/traces'
 import { BANK, GENERATORS, needsGuidance, questionFor, readinessSet, WARMUP } from './assessment'
 import { BADGES } from './badges'
 import { MODES, SPEED } from './modes'
@@ -77,7 +77,7 @@ describe('authored content', () => {
     const heightQ = m1.quiz.find((q) => q.id === 'm1q4')!
     expect(heightQ.type === 'mcq' && Number(heightQ.options[heightQ.answer])).toBe(height(heightQ.tree ?? null))
     const deepest = m1.sections.find((s) => s.type === 'try')!
-    expect(deepest.type === 'try' && deepest.question.type === 'node' && height(deepest.question.tree)).toBe(3)
+    expect(deepest.type === 'try' && deepest.question.type === 'node' && height(deepest.question.tree)).toBe(4)
     const compare = MODULES[2].quiz.find((q) => q.id === 'm3q2')!
     expect(compare.type === 'mcq' && Number(compare.options[compare.answer])).toBe(
       searchPath(compare.tree ?? null, 40).compared.length,
@@ -138,6 +138,14 @@ describe('generated questions', () => {
           .map(Number)
         expect(Number(q.options[q.answer])).toBe(height(fromKeys(order)))
       }
+      if (q.type === 'mcq' && q.prompt.startsWith('Breadth first search')) {
+        const key = Number(q.prompt.match(/looks for (\d+)/)![1])
+        expect(Number(q.options[q.answer])).toBe(frontierTrace(q.tree ?? null, 'bfs', key).at(-1)!.output.length)
+      }
+      if (q.type === 'node' && q.prompt.startsWith('Depth first search')) {
+        const key = Number(q.prompt.match(/looks for (\d+)/)![1])
+        expect(q.answer).toEqual([frontierTrace(q.tree, 'dfs', key).at(-1)!.output.at(-2)])
+      }
       if (q.type === 'mcq' && q.prompt.startsWith('How many nodes')) {
         const key = Number(q.prompt.match(/searching for (\d+)/)![1])
         expect(Number(q.options[q.answer])).toBe(searchPath(q.tree ?? null, key).compared.length)
@@ -196,11 +204,34 @@ describe('generated questions', () => {
   })
 })
 
+describe('tree search questions', () => {
+  const question = (id: string) => MODULES.flatMap((m) => m.quiz).find((q) => q.id === id)!
+  const checked = (tree: Tree, kind: 'bfs' | 'dfs', key: number) => frontierTrace(tree, kind, key).at(-1)!.output
+
+  it('names the node depth first search checks just before the key', () => {
+    const q = question('m4q6')
+    const order = checked(q.type === 'node' ? q.tree : null, 'dfs', 20)
+    expect(q.type === 'node' && q.answer).toEqual([order.at(-2)])
+  })
+
+  it('counts the nodes breadth first search checks', () => {
+    const q = question('m5q5')
+    expect(q.type === 'mcq' && Number(q.options[q.answer])).toBe(checked(q.tree ?? null, 'bfs', 20).length)
+  })
+
+  it('compares tree search with BST search using the engine', () => {
+    const q = question('m6q6')
+    const tree = q.type === 'mcq' ? (q.tree ?? null) : null
+    const expected = `${checked(tree, 'bfs', 7).length} and ${searchPath(tree, 7).compared.length}`
+    expect(q.type === 'mcq' && q.options[q.answer]).toBe(expected)
+  })
+})
+
 describe('lesson figures', () => {
   const figures = MODULES.flatMap((m) => m.sections.flatMap((s) => (s.type === 'figure' ? [s] : [])))
 
   it('exist, so the lesson 1 vocabulary is shown and not only told', () => {
-    expect(figures.map((f) => f.title)).toEqual(['What is a tree?', 'Trees in code', 'Binary trees, depth and height'])
+    expect(figures.map((f) => f.title)).toEqual(['What is a tree?', 'Trees in code', 'Binary trees, levels and height'])
   })
 
   it.each(figures.map((f) => [f.title, f]))('%s labels only nodes that exist, and each label is true', (_, f) => {
