@@ -76,9 +76,7 @@ export default function App() {
       <Toast />
       <Tour />
       <footer className="footer">
-        TreeTutor, the COS212 app. Data structure: the binary search tree (CS2023 AL-Foundational 9a). Algorithm:
-        uninformed depth first and breadth first tree search (CS2023 AL-Foundational 11c). A pre-lecture prototype for
-        COS750 Educational Software Development, University of Pretoria.
+        TreeTutor, the COS212 app. COS750, University of Pretoria.
         {DEMO_SEED !== null && <span className="demo-seed"> Demo seed {DEMO_SEED}: generated questions repeat.</span>}
       </footer>
     </>
