@@ -13,6 +13,8 @@ const mcq: Question = {
   prompt: 'Which key may sit in the right subtree of 50?',
   options: ['12', '49', '73'],
   answer: 2,
+  feedback: ['12 < 50, so 12 belongs on the left.', '49 < 50, so 49 belongs on the left.', ''],
+  bloom: 'Understand',
   hints: ['Right means larger.'],
   explain: 'Only larger keys go right.',
 }
@@ -23,6 +25,7 @@ const order: Question = {
   type: 'order',
   kind: 'pre',
   tree: fromKeys([2, 1, 3]),
+  bloom: 'Apply',
   prompt: 'Click the nodes in PRE-ORDER.',
   hints: ['The root is first.'],
   explain: 'Pre-order: 2, 1, 3.',
@@ -52,6 +55,7 @@ describe('QuestionCard', () => {
   it('shows the hint after a mistake and gives partial credit', async () => {
     const { user, onDone } = setup(mcq)
     await user.click(screen.getByRole('button', { name: /12/ }))
+    expect(screen.getByRole('status')).toHaveTextContent('Not quite. 12 < 50, so 12 belongs on the left.')
     expect(screen.getByText(/Right means larger/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /12/ })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: /73/ }))

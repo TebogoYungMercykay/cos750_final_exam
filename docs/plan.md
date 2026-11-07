@@ -6,7 +6,7 @@ TreeTutor is a pre-lecture tutor for COS212 students. It teaches binary search t
 
 - **Data structure:** binary search trees, CS2023 AL-Foundational.
 - **Algorithm:** uninformed tree search, breadth first and depth first, CS2023 AL-Foundational.
-- **Learners:** COS212 students before the lecture on trees, with no prior knowledge of the topic assumed.
+- **Learners:** second-year COS212 students before the lecture on trees. They read Java and know OOP; no knowledge of trees is assumed.
 - **Setting:** self-paced, in a browser on a phone or laptop, in about an hour.
 
 ## Approach

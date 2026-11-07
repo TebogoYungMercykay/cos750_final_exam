@@ -1,42 +1,43 @@
 import { Gauge, Layers, Network, Rows3, Scale, Search } from 'lucide-react'
-import { fromKeys, fromSpec } from '../engine/bst'
+import { findNode, fromKeys, fromSpec, height, leaves, nullLinks, searchPath, type Tree } from '../engine/bst'
+import { levels } from '../engine/traversal'
 import type { Module, ModuleId, Outcome, OutcomeId } from './types'
 
 export const OUTCOMES: Record<OutcomeId, Outcome> = {
   LO1: {
     short: 'Tree vocabulary',
     text: 'Identify the parts of a tree: root, parent, child, leaf, edge, subtree, depth and height.',
-    bloom: 'Remember, Understand',
+    bloom: ['Remember', 'Understand'],
     module: 'm1',
   },
   LO2: {
     short: 'The BST rule',
     text: 'Explain the BST ordering property and decide whether a binary tree is a BST.',
-    bloom: 'Understand, Analyse',
+    bloom: ['Understand', 'Apply', 'Analyse'],
     module: 'm2',
   },
   LO3: {
     short: 'Search and insert',
     text: 'Trace BST search and insertion step by step.',
-    bloom: 'Apply',
+    bloom: ['Understand', 'Apply'],
     module: 'm3',
   },
   LO4: {
     short: 'Depth first traversals',
-    text: 'Produce pre-order, in-order and post-order traversals of a binary tree.',
-    bloom: 'Apply',
+    text: 'Produce pre-order, in-order and post-order traversals of a binary tree, and explain how depth first search uses a stack.',
+    bloom: ['Understand', 'Apply'],
     module: 'm4',
   },
   LO5: {
     short: 'Breadth first traversal',
-    text: 'Produce a level-order traversal and explain why it uses a queue.',
-    bloom: 'Apply, Understand',
+    text: 'Produce a level-order traversal, and explain why breadth first search uses a queue where depth first uses a stack.',
+    bloom: ['Understand', 'Apply'],
     module: 'm5',
   },
   LO6: {
     short: 'Shape and efficiency',
     text: 'Relate tree height to the cost of search and insert, and choose a suitable traversal for a task.',
-    bloom: 'Analyse, Evaluate',
+    bloom: ['Analyse', 'Evaluate'],
     module: 'm6',
   },
 }
@@ -51,12 +52,30 @@ export const TREES = {
   wide: fromKeys([30, 18, 45, 10, 22, 40, 50, 35]),
 }
 
+/** Labels the root, one parent and every leaf, all read from the tree so a label can never be wrong. */
+function anatomy(tree: Tree, parent: number): Partial<Record<number, string>> {
+  const p = findNode(tree, parent)
+  const children = [p?.left?.key, p?.right?.key].filter((k) => k !== undefined)
+  return {
+    ...Object.fromEntries(leaves(tree).map((k) => [k, 'leaf'])),
+    [parent]: `parent of ${children.join(' and ')}`,
+    ...(tree && { [tree.key]: 'root' }),
+  }
+}
+
+const BALANCED_7 = fromKeys([4, 2, 6, 1, 3, 5, 7])
+const FIRST_TREE = TREES.small
+const CODE_TREE = fromKeys([8, 3, 10, 6])
+/** Deliberately not the quick check's tree, so this figure does not give away its answer. */
+const DEPTH_TREE = fromKeys([50, 30, 70, 20, 40, 80, 35])
+const DEEPEST = levels(DEPTH_TREE).at(-1)![0]
+
 export const MODULES: Module[] = [
   {
     id: 'm1',
     lo: 'LO1',
     icon: Network,
-    minutes: 8,
+    minutes: 10,
     title: 'Trees 101',
     tagline: 'The vocabulary you need before the lecture.',
     hook: (
@@ -71,10 +90,19 @@ export const MODULES: Module[] = [
         </p>
       </>
     ),
+    recall: (
+      <p>
+        From your OOP modules you know objects whose fields refer to other objects, and that a reference can be{' '}
+        <code>null</code>. A tree is built from exactly that.
+      </p>
+    ),
     sections: [
       {
-        type: 'text',
+        type: 'figure',
         title: 'What is a tree?',
+        tree: FIRST_TREE,
+        labels: anatomy(FIRST_TREE, 3),
+        caption: `The root is ${FIRST_TREE!.key}. The leaves are ${leaves(FIRST_TREE).join(', ')}.`,
         body: (
           <>
             <p>
@@ -108,8 +136,51 @@ export const MODULES: Module[] = [
           'Click a node, or Tab to it and press Enter, to see its role. Try the root, a leaf and a node in the middle.',
       },
       {
-        type: 'text',
+        type: 'figure',
+        title: 'Trees in code',
+        tree: CODE_TREE,
+        labels: { [CODE_TREE!.key]: 'root' },
+        nulls: true,
+        caption: `Four Node objects and ${nullLinks(CODE_TREE).length} null links: ${nullLinks(CODE_TREE).join(', ')}.`,
+        body: (
+          <>
+            <p>You already know everything a tree needs from OOP. A node is an object of one small class:</p>
+            <pre className="code code-block">
+              {`class Node {
+  int key;
+  Node left;   // left child, or null
+  Node right;  // right child, or null
+
+  Node(int key) { this.key = key; }
+}`}
+            </pre>
+            <ul>
+              <li>
+                Each circle is one <code>Node</code> object.
+              </li>
+              <li>Each edge is a reference from a parent to a child.</li>
+              <li>
+                A missing child is simply <code>null</code>, drawn here as a dashed stub.
+              </li>
+              <li>
+                The tree itself is a single reference, <code>Node root</code>. An empty tree is{' '}
+                <code>root == null</code>.
+              </li>
+            </ul>
+            <p className="aside">
+              Because every child is itself the root of a smaller tree, most tree code is recursive: do something with
+              this node, then call the same method on <code>node.left</code> and <code>node.right</code>.
+            </p>
+          </>
+        ),
+      },
+      {
+        type: 'figure',
         title: 'Binary trees, depth and height',
+        tree: DEPTH_TREE,
+        ruler: true,
+        labels: { [DEEPEST]: 'deepest' },
+        caption: `Height ${height(DEPTH_TREE)}: the deepest node, ${DEEPEST}, is ${height(DEPTH_TREE)} edges below the root.`,
         body: (
           <>
             <p>
@@ -144,6 +215,7 @@ export const MODULES: Module[] = [
           id: 'm1-try',
           lo: 'LO1',
           type: 'node',
+          bloom: 'Understand',
           tree: TREES.uneven,
           answer: [25],
           prompt: 'Click the node with the greatest depth.',
@@ -167,6 +239,7 @@ export const MODULES: Module[] = [
         id: 'm1q1',
         lo: 'LO1',
         type: 'node',
+        bloom: 'Remember',
         tree: TREES.balanced,
         answer: [50],
         prompt: 'Click the root of this tree.',
@@ -177,6 +250,7 @@ export const MODULES: Module[] = [
         id: 'm1q2',
         lo: 'LO1',
         type: 'node',
+        bloom: 'Remember',
         tree: TREES.small,
         answer: [1, 6, 14],
         prompt: 'Click any leaf.',
@@ -190,10 +264,17 @@ export const MODULES: Module[] = [
         id: 'm1q3',
         lo: 'LO1',
         type: 'mcq',
+        bloom: 'Remember',
         tree: TREES.uneven,
         prompt: 'In this tree, what is the parent of 25?',
         options: ['20', '30', '40', 'It has no parent'],
         answer: 1,
+        feedback: [
+          '20 is the grandparent of 25: two edges up. The parent is the node one edge up.',
+          '',
+          '40 is the root, an ancestor of every node. The parent is the node directly above.',
+          'Only the root has no parent. 25 has an edge going up to the node above it.',
+        ],
         hints: ['The parent is the node directly above, joined by one edge.'],
         explain: '25 hangs directly below 30, so 30 is its parent.',
       },
@@ -201,10 +282,17 @@ export const MODULES: Module[] = [
         id: 'm1q4',
         lo: 'LO1',
         type: 'mcq',
+        bloom: 'Understand',
         tree: TREES.balanced,
         prompt: 'What is the height of this tree, counting edges?',
         options: ['1', '2', '3', '7'],
         answer: 1,
+        feedback: [
+          'That is the depth of 30 and 70. Height goes all the way down to the deepest leaf.',
+          '',
+          'That counts the nodes on the path (50, 30, 20). Height counts the edges between them.',
+          '7 is the number of nodes. Height is the number of edges on the longest root to leaf path.',
+        ],
         hints: ['Count the edges on the longest path from the root down to a leaf.', 'For example 50 → 30 → 20.'],
         explain: 'The longest root to leaf path is 2 edges long (for example 50 → 30 → 20), so the height is 2.',
       },
@@ -212,9 +300,16 @@ export const MODULES: Module[] = [
         id: 'm1q5',
         lo: 'LO1',
         type: 'mcq',
+        bloom: 'Understand',
         prompt: 'In a binary tree, how many children can a node have?',
         options: ['Exactly 2', '0, 1 or 2', 'Any number', 'At least 1'],
         answer: 1,
+        feedback: [
+          'Leaves have no children and some nodes have only one. Binary limits the maximum to two.',
+          '',
+          'That describes a general tree. Binary means at most two children: left and right.',
+          'Leaves have no children at all, and every tree has at least one leaf.',
+        ],
         hints: ['Leaves are allowed in binary trees. How many children does a leaf have?'],
         explain: 'Binary means at most two: a node may have 0 (a leaf), 1 or 2 children.',
       },
@@ -243,6 +338,12 @@ export const MODULES: Module[] = [
           A <strong>binary search tree (BST)</strong> stores data so that the computer can play this game automatically.
         </p>
       </>
+    ),
+    recall: (
+      <p>
+        From lesson 1: every node has a left subtree and a right subtree, and a tree is a <code>Node</code> object with
+        two references. From everyday life: a dictionary is in alphabetical order, so you never read it page by page.
+      </p>
     ),
     sections: [
       {
@@ -285,6 +386,7 @@ export const MODULES: Module[] = [
       },
       {
         type: 'tree',
+        event: 5,
         title: 'Looks fine, but it is broken',
         tree: fromSpec([50, [30, 20, 60], 70]),
         violation: 60,
@@ -298,6 +400,7 @@ export const MODULES: Module[] = [
           id: 'm2-try',
           lo: 'LO2',
           type: 'node',
+          bloom: 'Analyse',
           tree: fromSpec([40, [20, 10, 30], [60, 45, [70, 35, null]]]),
           answer: [35],
           violation: 35,
@@ -321,10 +424,15 @@ export const MODULES: Module[] = [
         id: 'm2q1',
         lo: 'LO2',
         type: 'mcq',
+        bloom: 'Analyse',
         tree: TREES.small,
         prompt: 'Is this a valid BST?',
         options: ['Yes', 'No'],
         answer: 0,
+        feedback: [
+          '',
+          'Check each node against all its ancestors: every key to the left is smaller and every key to the right is larger. Nothing breaks the rule here.',
+        ],
         hints: ['Check each node: is everything on its left smaller and everything on its right larger?'],
         explain:
           'Every node satisfies the rule. For example 3 has 1 (smaller) on its left and 6 (larger) on its right, and all of them are below 8.',
@@ -333,11 +441,16 @@ export const MODULES: Module[] = [
         id: 'm2q2',
         lo: 'LO2',
         type: 'mcq',
+        bloom: 'Analyse',
         tree: fromSpec([25, [15, 10, 30], [40, 35, 50]]),
         violation: 30,
         prompt: 'Is this a valid BST?',
         options: ['Yes', 'No'],
         answer: 1,
+        feedback: [
+          'One node is on the wrong side of an ancestor further up. Checking each node against its parent only is not enough.',
+          '',
+        ],
         hints: ['Look at the left subtree of 25. Must all of those keys be smaller or larger than 25?'],
         explain: '30 is in the left subtree of 25 but is larger than 25, so the tree is not a BST.',
       },
@@ -345,9 +458,16 @@ export const MODULES: Module[] = [
         id: 'm2q3',
         lo: 'LO2',
         type: 'mcq',
+        bloom: 'Understand',
         prompt: 'Where is the SMALLEST key in a non-empty BST?',
         options: ['At the root', 'At the leftmost node (keep going left)', 'At the rightmost node', 'At any leaf'],
         answer: 1,
+        feedback: [
+          "The root's left subtree holds smaller keys, unless it is empty.",
+          '',
+          'Going right always leads to larger keys, so the rightmost node holds the largest key.',
+          'Leaves can hold large keys too. Only the path that keeps going left leads to the smallest.',
+        ],
         hints: ['Smaller keys are always to the left.'],
         explain: 'Starting at the root and following left children until you cannot go further reaches the minimum.',
       },
@@ -355,6 +475,7 @@ export const MODULES: Module[] = [
         id: 'm2q4',
         lo: 'LO2',
         type: 'node',
+        bloom: 'Apply',
         tree: TREES.lecture,
         answer: [27],
         prompt: 'Click the LARGEST key without reading all the numbers. Use the BST rule.',
@@ -365,9 +486,16 @@ export const MODULES: Module[] = [
         id: 'm2q5',
         lo: 'LO2',
         type: 'mcq',
+        bloom: 'Understand',
         prompt: 'A node has key 50. Which key could legally appear anywhere in its RIGHT subtree?',
         options: ['12', '49', '50', '73'],
         answer: 3,
+        feedback: [
+          '12 < 50, so it belongs in the left subtree.',
+          '49 is close, but still smaller than 50, so it belongs on the left.',
+          'Keys are distinct here, and the right subtree holds only keys larger than 50.',
+          '',
+        ],
         hints: ['Everything in the right subtree must be greater than the node.'],
         explain: 'Only keys greater than 50 may appear in its right subtree.',
       },
@@ -389,6 +517,12 @@ export const MODULES: Module[] = [
       <p>
         Looking up a word in a paper dictionary, you never read it from page 1. You open somewhere in the middle and
         decide: <em>earlier</em> or <em>later</em>? BST search works exactly like that.
+      </p>
+    ),
+    recall: (
+      <p>
+        From lesson 2: in a BST every key on the left is smaller and every key on the right is larger. From the warm-up:
+        halving the options at every step gets you to the answer very quickly.
       </p>
     ),
     sections: [
@@ -443,6 +577,7 @@ export const MODULES: Module[] = [
           id: 'm3-try',
           lo: 'LO3',
           type: 'slot',
+          bloom: 'Apply',
           tree: TREES.balanced,
           value: 35,
           prompt: 'Click the empty spot (+) where 35 will be inserted.',
@@ -457,6 +592,7 @@ export const MODULES: Module[] = [
         id: 'm3q1',
         lo: 'LO3',
         type: 'slot',
+        bloom: 'Apply',
         tree: TREES.lecture,
         value: 21,
         prompt: 'Click where 21 will be inserted.',
@@ -467,10 +603,17 @@ export const MODULES: Module[] = [
         id: 'm3q2',
         lo: 'LO3',
         type: 'mcq',
+        bloom: 'Apply',
         tree: TREES.balanced,
         prompt: 'How many nodes are compared when searching for 40?',
         options: ['1', '2', '3', '7'],
         answer: 2,
+        feedback: [
+          'Only a search for the root takes one comparison. 40 is further down.',
+          'Count the node that matches as well: it is compared too.',
+          '',
+          'Search follows one path from the root and never looks at the other nodes.',
+        ],
         hints: ['Trace it: start at the root and count each node you look at.'],
         explain: '50 (go left), 30 (go right), 40 (found): 3 comparisons.',
       },
@@ -478,6 +621,7 @@ export const MODULES: Module[] = [
         id: 'm3q3',
         lo: 'LO3',
         type: 'node',
+        bloom: 'Apply',
         tree: TREES.balanced,
         answer: [60],
         prompt: 'Searching for 65, which is the LAST node examined before the search reports "not found"?',
@@ -488,6 +632,7 @@ export const MODULES: Module[] = [
         id: 'm3q4',
         lo: 'LO3',
         type: 'slot',
+        bloom: 'Apply',
         tree: TREES.small,
         value: 7,
         prompt: 'Click where 7 will be inserted.',
@@ -498,6 +643,7 @@ export const MODULES: Module[] = [
         id: 'm3q5',
         lo: 'LO3',
         type: 'mcq',
+        bloom: 'Apply',
         prompt: 'You insert 10, 20, 30, 40 (in that order) into an empty BST. What does the tree look like?',
         options: [
           'A balanced tree with 20 at the root',
@@ -506,6 +652,12 @@ export const MODULES: Module[] = [
           'It depends on the computer',
         ],
         answer: 1,
+        feedback: [
+          'The first key, 10, becomes the root and stays there. Insert never rebalances the tree.',
+          '',
+          'Each new key is larger than the one before, so it goes right, not left.',
+          'Insert is deterministic: the same keys in the same order always build the same tree.',
+        ],
         hints: ['10 becomes the root. Where does 20 go? And 30?'],
         explain:
           'Each new key is larger than everything before it, so it always goes right. The tree becomes a chain. Lesson 6 explains why that is slow.',
@@ -523,11 +675,18 @@ export const MODULES: Module[] = [
     icon: Layers,
     minutes: 12,
     title: 'Depth first traversals',
-    tagline: 'Visit every node: pre-order, in-order and post-order.',
+    tagline: 'Walk the whole tree with a stack: pre-order, in-order and post-order.',
     hook: (
       <p>
         Exploring a cave system, you follow one tunnel as <em>deep</em> as it goes before backing up to try the next
         one. A <strong>depth first traversal</strong> visits every node in the tree in the same way.
+      </p>
+    ),
+    recall: (
+      <p>
+        From lesson 3: every subtree is itself a tree, so a method can handle a node and then call itself on{' '}
+        <code>node.left</code> and <code>node.right</code>. From your programming modules: recursion, and the call stack
+        that keeps every call that has not returned yet.
       </p>
     ),
     sections: [
@@ -586,6 +745,16 @@ export const MODULES: Module[] = [
               </tbody>
             </table>
             <p>Left always comes before right. Only the position of the node changes.</p>
+            <p>
+              While a call works on the left subtree, the calls above it wait. Java keeps them on the{' '}
+              <strong>call stack</strong>: the newest call on top, and it always finishes first (last in, first out).
+              The animations show the call stack as a list with the running call first.
+            </p>
+            <p className="aside">
+              This lesson and the next are the two halves of one algorithm, tree search. Both keep a list of nodes still
+              to visit. Keep it on a stack and the walk goes deep first; keep it in a queue, as lesson 5 does, and it
+              goes level by level.
+            </p>
           </>
         ),
       },
@@ -617,6 +786,7 @@ export const MODULES: Module[] = [
           id: 'm4-try',
           lo: 'LO4',
           type: 'order',
+          bloom: 'Apply',
           kind: 'pre',
           tree: TREES.small,
           prompt: 'Click the nodes in PRE-ORDER (Node, Left, Right).',
@@ -638,6 +808,7 @@ export const MODULES: Module[] = [
         id: 'm4q1',
         lo: 'LO4',
         type: 'order',
+        bloom: 'Apply',
         kind: 'in',
         tree: TREES.balanced,
         prompt: 'Click the nodes in IN-ORDER.',
@@ -648,6 +819,7 @@ export const MODULES: Module[] = [
         id: 'm4q2',
         lo: 'LO4',
         type: 'order',
+        bloom: 'Apply',
         kind: 'post',
         tree: TREES.small,
         prompt: 'Click the nodes in POST-ORDER.',
@@ -658,6 +830,7 @@ export const MODULES: Module[] = [
         id: 'm4q3',
         lo: 'LO4',
         type: 'order',
+        bloom: 'Apply',
         kind: 'pre',
         tree: TREES.uneven,
         prompt: 'Click the nodes in PRE-ORDER.',
@@ -671,9 +844,16 @@ export const MODULES: Module[] = [
         id: 'm4q4',
         lo: 'LO4',
         type: 'mcq',
+        bloom: 'Understand',
         prompt: 'The pre-order traversal of a BST is 33, 21, 9, 27, 48, 52. Which key is the root?',
         options: ['9', '21', '33', '52'],
         answer: 2,
+        feedback: [
+          '9 is the smallest key, the leftmost node. Pre-order starts at the root, not at the smallest key.',
+          '21 comes second: it is the root of the left subtree.',
+          '',
+          'In pre-order the root comes first. The root comes last only in post-order.',
+        ],
         hints: ['In pre-order, which node is visited first?'],
         explain: 'Pre-order visits the root first, so the root is 33.',
       },
@@ -681,9 +861,16 @@ export const MODULES: Module[] = [
         id: 'm4q5',
         lo: 'LO4',
         type: 'mcq',
+        bloom: 'Understand',
         prompt: 'In POST-order, which node is always visited last?',
         options: ['The leftmost leaf', 'The root', 'The rightmost leaf', 'It depends on the tree'],
         answer: 1,
+        feedback: [
+          'The leftmost leaf comes first in post-order, not last.',
+          '',
+          'The rightmost leaf finishes the right subtree, and then the root is still waiting.',
+          'Post-order visits a node after both its subtrees, so the root, above everything, is always last.',
+        ],
         hints: ['Post-order is Left, Right, Node. Apply that to the whole tree.'],
         explain: 'The root is visited only after both of its subtrees are finished, so it is always last.',
       },
@@ -701,12 +888,18 @@ export const MODULES: Module[] = [
     icon: Rows3,
     minutes: 10,
     title: 'Breadth first traversal',
-    tagline: 'Level by level with a queue.',
+    tagline: 'Walk the whole tree with a queue: level by level.',
     hook: (
       <p>
         Drop a stone into a pond and the ripples spread out one ring at a time. A <strong>breadth first</strong>{' '}
         (level-order) traversal does the same: first the root, then every node at depth 1, then depth 2, and so on, left
         to right.
+      </p>
+    ),
+    recall: (
+      <p>
+        From lesson 4: a depth first walk keeps its waiting work on a stack, last in, first out. From the warm-up: a
+        queue is first in, first out, like a line at the canteen.
       </p>
     ),
     sections: [
@@ -735,6 +928,7 @@ export const MODULES: Module[] = [
           id: 'm5-try',
           lo: 'LO5',
           type: 'order',
+          bloom: 'Apply',
           kind: 'level',
           tree: TREES.lecture,
           prompt: 'Click the nodes in LEVEL-ORDER.',
@@ -790,7 +984,7 @@ export const MODULES: Module[] = [
         title: 'Test your prediction: swap the queue for a stack',
         tree: TREES.wide,
         caption:
-          'The same loop runs both walks. Only the waiting list changes: a queue hands back the node that has waited longest, a stack the one that arrived last. Step through both and compare the visit orders.',
+          'This is levelOrder from step 2 with the queue passed in as the frontier, so the same loop can run with a stack instead. Only the waiting list changes: a queue hands back the node that has waited longest, a stack the one that arrived last. Step through both and compare the visit orders.',
       },
     ],
     quiz: [
@@ -798,6 +992,7 @@ export const MODULES: Module[] = [
         id: 'm5q1',
         lo: 'LO5',
         type: 'order',
+        bloom: 'Apply',
         kind: 'level',
         tree: TREES.wide,
         prompt: 'Click the nodes in LEVEL-ORDER.',
@@ -808,9 +1003,16 @@ export const MODULES: Module[] = [
         id: 'm5q2',
         lo: 'LO5',
         type: 'mcq',
+        bloom: 'Understand',
         prompt: 'Which data structure does a level-order traversal use to remember the nodes still to visit?',
         options: ['A stack', 'A queue', 'A sorted array', 'Another BST'],
         answer: 1,
+        feedback: [
+          'A stack gives back the newest node first, which dives deep: that is depth first.',
+          '',
+          'Sorting would order the nodes by key, not by level.',
+          'A BST orders by key. Level-order needs the nodes in the order they were found.',
+        ],
         hints: ['Nodes found first must be visited first.'],
         explain: 'A queue (FIFO) keeps the nodes in the order they were discovered: level by level.',
       },
@@ -818,6 +1020,7 @@ export const MODULES: Module[] = [
         id: 'm5q3',
         lo: 'LO5',
         type: 'order',
+        bloom: 'Apply',
         kind: 'level',
         tree: TREES.uneven,
         prompt: 'Click the nodes in LEVEL-ORDER.',
@@ -828,9 +1031,16 @@ export const MODULES: Module[] = [
         id: 'm5q4',
         lo: 'LO5',
         type: 'mcq',
+        bloom: 'Understand',
         prompt: 'Recursive pre-order traversal does not create a stack in the code. Which stack does it use?',
         options: ['None, recursion needs no memory', "The program's call stack", 'A hidden queue', 'The heap'],
         answer: 1,
+        feedback: [
+          'Every call that has not returned yet has to be remembered somewhere.',
+          '',
+          'A queue gives back the oldest item first. Recursion always returns to the newest call.',
+          'The heap holds objects such as the nodes. Unfinished calls live on the call stack.',
+        ],
         hints: ['Every function call that has not returned yet is stored somewhere.'],
         explain: 'Each active recursive call is a frame on the call stack, so depth first traversal is stack based.',
       },
@@ -855,12 +1065,18 @@ export const MODULES: Module[] = [
         lot slower to search. Which one?
       </p>
     ),
+    recall: (
+      <p>
+        From lesson 3: a search follows one path from the root, so its cost is the number of levels on that path. From
+        lessons 4 and 5: a traversal visits every node once.
+      </p>
+    ),
     sections: [
       {
         type: 'compare',
         title: 'Same keys, different shapes',
         items: [
-          { tree: fromKeys([4, 2, 6, 1, 3, 5, 7]), caption: 'Inserted 4, 2, 6, 1, 3, 5, 7. Balanced: height 2.' },
+          { tree: BALANCED_7, caption: 'Inserted 4, 2, 6, 1, 3, 5, 7. Balanced: height 2.' },
           {
             tree: fromKeys([1, 2, 3, 4, 5, 6, 7]),
             caption: 'Inserted 1, 2, 3, 4, 5, 6, 7. A degenerate chain: height 6.',
@@ -897,16 +1113,31 @@ export const MODULES: Module[] = [
         ),
       },
       {
+        type: 'animate',
+        title: 'Worked example: search for 7 in the balanced tree',
+        tree: BALANCED_7,
+        kind: 'search',
+        key: 7,
+        callout: `${searchPath(BALANCED_7, 7).compared.length} comparisons, one per level. Now predict the same search in the chain shaped tree.`,
+      },
+      {
         type: 'try',
         title: 'Your turn',
         question: {
           id: 'm6-try',
           lo: 'LO6',
           type: 'mcq',
+          bloom: 'Analyse',
           tree: fromKeys([1, 2, 3, 4, 5, 6, 7]),
           prompt: 'How many comparisons does a search for 7 take in this tree?',
           options: ['1', '3', '4', '7'],
           answer: 3,
+          feedback: [
+            '1 is the root here, and 7 is at the bottom of the chain.',
+            'In a balanced tree of 7 keys it would be 3. This tree is a chain, so every node is on the path.',
+            'Count every node from the root down to 7, including 7 itself.',
+            '',
+          ],
           hints: [
             'Count the nodes on the path from the root down to 7.',
             'In this chain every node has only a right child.',
@@ -964,9 +1195,16 @@ export const MODULES: Module[] = [
         id: 'm6q1',
         lo: 'LO6',
         type: 'mcq',
+        bloom: 'Analyse',
         prompt: 'What is the worst case number of comparisons to search a degenerate (chain shaped) BST with n nodes?',
         options: ['1', 'about log₂ n', 'n', 'n²'],
         answer: 2,
+        feedback: [
+          'One comparison only finds the root.',
+          'That is the balanced case. A chain has height n − 1, so the search may pass every node.',
+          '',
+          'Search compares each node on one path once, so it never exceeds n.',
+        ],
         hints: ['In a chain, each node has only one child. How long is the only path?'],
         explain: 'The path can contain all n nodes, so search is O(n).',
       },
@@ -974,9 +1212,16 @@ export const MODULES: Module[] = [
         id: 'm6q2',
         lo: 'LO6',
         type: 'mcq',
+        bloom: 'Analyse',
         prompt: 'What is the time complexity of an in-order traversal of a BST with n nodes?',
         options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
         answer: 2,
+        feedback: [
+          'A traversal visits every node, so its cost grows with n.',
+          'log n is the length of one root to leaf path. A traversal visits all n nodes, not one path.',
+          '',
+          'Each node is visited once with constant work per visit, so there is no log factor.',
+        ],
         hints: ['A traversal visits every node exactly once.'],
         explain: "Every node is visited once, so traversal is O(n), regardless of the tree's shape.",
       },
@@ -984,10 +1229,17 @@ export const MODULES: Module[] = [
         id: 'm6q3',
         lo: 'LO6',
         type: 'mcq',
+        bloom: 'Evaluate',
         prompt:
           'You want to safely delete every node of a tree, and each node may only be removed after its children. Which traversal fits?',
         options: ['Pre-order', 'In-order', 'Post-order', 'Level-order'],
         answer: 2,
+        feedback: [
+          'Pre-order handles a node before its children, so the children would be cut off first.',
+          'In-order handles a node between its subtrees, so its right subtree is still attached.',
+          '',
+          'Level-order works top down, so parents are handled before their children.',
+        ],
         hints: ['Children must be finished BEFORE the parent.'],
         explain: 'Post-order handles both subtrees before the node itself.',
       },
@@ -995,9 +1247,16 @@ export const MODULES: Module[] = [
         id: 'm6q4',
         lo: 'LO6',
         type: 'mcq',
+        bloom: 'Analyse',
         prompt: 'A perfectly balanced BST holds 15 keys. What is its height, in edges?',
         options: ['3', '4', '7', '14'],
         answer: 0,
+        feedback: [
+          '',
+          'That counts the levels, the nodes on a path. Height counts edges: one fewer.',
+          'That is half the keys. Each level doubles: 1, 2, 4 and 8 make 15 in four levels.',
+          'That is the height of a chain of 15 keys, the worst case, not a balanced tree.',
+        ],
         hints: ['Levels hold 1, 2, 4, 8 nodes.', '1 + 2 + 4 + 8 = 15, so 4 levels. How many edges from top to bottom?'],
         explain: '15 nodes fill 4 levels (1 + 2 + 4 + 8), so the height is 3 edges.',
       },
@@ -1005,9 +1264,16 @@ export const MODULES: Module[] = [
         id: 'm6q5',
         lo: 'LO6',
         type: 'mcq',
+        bloom: 'Evaluate',
         prompt: 'Which insertion order produces the most balanced BST for the keys 1 to 7?',
         options: ['1, 2, 3, 4, 5, 6, 7', '7, 6, 5, 4, 3, 2, 1', '4, 2, 6, 1, 3, 5, 7', '1, 7, 2, 6, 3, 5, 4'],
         answer: 2,
+        feedback: [
+          'Sorted input sends every key to the right: a chain of height 6.',
+          'Reverse sorted input sends every key to the left: a chain of height 6.',
+          '',
+          'Alternating from the ends makes a zigzag: each key still has only one child.',
+        ],
         hints: ['A good root splits the remaining keys in half.'],
         explain: 'Inserting the middle key (4) first, then the middles of each half, gives a perfectly balanced tree.',
       },

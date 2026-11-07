@@ -16,6 +16,8 @@
 ./treetutor dev       # http://localhost:5173
 ```
 
+For a demonstration, open the app with a seed, for example `http://localhost:5173/?seed=42`. Every generated question then repeats in the same order after a reload, and the footer says the seed is on. Reset progress on the Progress page to start the demo from a clean state.
+
 ## The treetutor script
 
 `./treetutor` runs everything from the repository root, and CI calls the same commands, so a green `./treetutor all` on your machine means the same checks pass on GitHub. `./treetutor --help` lists every option.

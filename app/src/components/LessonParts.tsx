@@ -5,11 +5,10 @@ import type { TraceKind } from '../engine/traces'
 import { useProgress } from '../state/progress'
 import { TreeView, type NodeState } from './TreeView'
 
-const LEGENDS: Record<'traversal' | 'path' | 'explore', [NodeState, string][]> = {
-  traversal: [
+const LEGENDS: Record<'ordered' | 'path' | 'explore', [NodeState, string][]> = {
+  ordered: [
     ['current', 'current'],
     ['visited', 'visited, number is the visit order'],
-    ['stack', 'waiting'],
   ],
   path: [
     ['current', 'current'],
@@ -23,15 +22,31 @@ const LEGENDS: Record<'traversal' | 'path' | 'explore', [NodeState, string][]> =
   ],
 }
 
+/** How waiting nodes are described for each kind of walk. They are drawn the same way for every kind. */
+const WAITING: Partial<Record<TraceKind, [NodeState, string]>> = {
+  pre: ['stack', 'on the call stack'],
+  in: ['stack', 'on the call stack, still to be visited'],
+  post: ['stack', 'on the call stack, still to be visited'],
+  level: ['queue', 'waiting in the queue'],
+  bfs: ['queue', 'waiting in the queue'],
+  dfs: ['queue', 'waiting on the stack'],
+}
+
+/** Every style the tree can show for this kind of trace, and nothing it cannot. */
 export function Legend({ kind }: { kind: TraceKind | 'explore' }) {
+  const waiting = kind === 'explore' ? undefined : WAITING[kind]
   const entries =
-    kind === 'explore' ? LEGENDS.explore : kind === 'search' || kind === 'insert' ? LEGENDS.path : LEGENDS.traversal
+    kind === 'explore'
+      ? LEGENDS.explore
+      : kind === 'search' || kind === 'insert'
+        ? LEGENDS.path
+        : [...LEGENDS.ordered, ...(waiting ? [waiting] : [])]
   return (
     <ul className="legend">
       {entries.map(([state, text]) => (
         <li key={state}>
           <i className={`swatch is-${state}`} aria-hidden="true" />
-          {kind === 'level' && state === 'stack' ? 'waiting in the queue' : text}
+          {text}
         </li>
       ))}
     </ul>

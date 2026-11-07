@@ -6,6 +6,8 @@ import { traversalOrder, TRAVERSALS } from '../engine/traces'
 import type { Answer, Question } from '../content/types'
 import { useProgress } from '../state/progress'
 import { credit } from '../state/scoring'
+import { reveal } from './reveal'
+import { TourLauncher } from './TourLauncher'
 import { TreeView, type NodeState } from './TreeView'
 
 type Status = 'open' | 'solved' | 'revealed'
@@ -14,12 +16,23 @@ interface QuestionCardProps {
   question: Question
   index?: number
   total?: number
+  /** Scroll to this question and focus it when it appears, because it replaced the one the learner just finished. */
+  reveal?: boolean
   onDone: (answer: Answer) => void
 }
 
 const LETTERS = 'ABCDEF'
 
-export function QuestionCard({ question: q, index = 0, total = 1, onDone }: QuestionCardProps) {
+/** How to answer each kind of question; guided mode shows it above the answer area. */
+const HOW_TO: Record<Question['type'], string> = {
+  mcq: 'Choose one option. A wrong choice is crossed out and you can try again.',
+  node: 'Click a node in the tree, or press Tab to reach it and Enter to choose it.',
+  order:
+    'Click the nodes one at a time, in the order they are visited. Each correct click gets a number; a wrong one flashes red.',
+  slot: 'Click the + where the new key belongs. Follow the path a search for the key would take.',
+}
+
+export function QuestionCard({ question: q, index = 0, total = 1, reveal: shouldReveal, onDone }: QuestionCardProps) {
   const { progress } = useProgress()
   const guided = progress.mode === 'guided'
   const [mistakes, setMistakes] = useState(0)
@@ -29,12 +42,20 @@ export function QuestionCard({ question: q, index = 0, total = 1, onDone }: Ques
   const [flash, setFlash] = useState<number | string | null>(null)
   const [status, setStatus] = useState<Status>('open')
   const flashTimer = useRef(0)
+  const promptRef = useRef<HTMLParagraphElement>(null)
+  const [revealOnMount] = useState(shouldReveal)
 
   useEffect(() => () => window.clearTimeout(flashTimer.current), [])
+
+  useEffect(() => {
+    if (revealOnMount) reveal(promptRef.current)
+  }, [revealOnMount])
 
   const hints = q.hints
   const shownHints = Math.min(hints.length, Math.max(mistakes, hintsAsked, guided ? 1 : 0))
   const closed = status !== 'open'
+  const lastWrong = wrongOptions.at(-1)
+  const misconception = q.type === 'mcq' && lastWrong !== undefined ? q.feedback[lastWrong] || null : null
   const order = q.type === 'order' ? traversalOrder(q.tree, q.kind) : []
   const slot = q.type === 'slot' ? insertSlot(q.tree, q.value) : null
 
@@ -109,73 +130,90 @@ export function QuestionCard({ question: q, index = 0, total = 1, onDone }: Ques
 
   return (
     <div className="question">
+      <TourLauncher id="question" />
       {total > 1 && (
         <p className="question-count">
           Question {index + 1} of {total}
         </p>
       )}
-      <p className="question-prompt">{q.prompt}</p>
+      <p className="question-prompt reveal-target" data-tour="question-prompt" tabIndex={-1} ref={promptRef}>
+        {q.prompt}
+      </p>
       {q.code && <pre className="code code-block">{q.code}</pre>}
-
-      {'tree' in q && q.tree !== undefined && (
-        <TreeView
-          tree={q.tree}
-          label={q.type === 'mcq' ? 'Tree for this question' : 'Question tree, select to answer'}
-          state={nodeState}
-          badge={q.type === 'order' ? badge : undefined}
-          onNode={q.type === 'order' || q.type === 'node' ? chooseNode : undefined}
-          slots={q.type === 'slot'}
-          onSlot={chooseSlot}
-          slotState={(s) =>
-            flash === s.id
-              ? 'wrong'
-              : closed && slot && s.parent === slot.parent && s.side === slot.side
-                ? 'correct'
-                : ''
-          }
-        />
-      )}
-
-      {q.type === 'order' && (
-        <p className="sequence">
-          <span className="chips-label">{TRAVERSALS[q.kind].label} so far</span>
-          {sequence.length ? (
-            sequence.map((key) => (
-              <span key={key} className="chip">
-                {key}
-              </span>
-            ))
-          ) : (
-            <em>select the first node</em>
-          )}
+      {guided && !closed && (
+        <p className="how-to">
+          <Info size={16} aria-hidden="true" />
+          {HOW_TO[q.type]}
         </p>
       )}
 
-      {q.type === 'mcq' && (
-        <div className="options" role="group" aria-label="Answer options">
-          {q.options.map((text, i) => {
-            const mark = closed && i === q.answer ? ' is-correct' : wrongOptions.includes(i) ? ' is-wrong' : ''
-            return (
-              <button
-                type="button"
-                key={i}
-                className={`option${mark}`}
-                onClick={() => chooseOption(i)}
-                disabled={closed || wrongOptions.includes(i)}
-              >
-                <span className="option-letter" aria-hidden="true">
-                  {LETTERS[i]}
+      <div className="question-answer" data-tour="question-answer">
+        {'tree' in q && q.tree !== undefined && (
+          <TreeView
+            tree={q.tree}
+            label={q.type === 'mcq' ? 'Tree for this question' : 'Question tree, select to answer'}
+            state={nodeState}
+            badge={q.type === 'order' ? badge : undefined}
+            onNode={q.type === 'order' || q.type === 'node' ? chooseNode : undefined}
+            slots={q.type === 'slot'}
+            onSlot={chooseSlot}
+            slotState={(s) =>
+              flash === s.id
+                ? 'wrong'
+                : closed && slot && s.parent === slot.parent && s.side === slot.side
+                  ? 'correct'
+                  : ''
+            }
+          />
+        )}
+
+        {q.type === 'order' && (
+          <p className="sequence">
+            <span className="chips-label">{TRAVERSALS[q.kind].label} so far</span>
+            {sequence.length ? (
+              sequence.map((key) => (
+                <span key={key} className="chip">
+                  {key}
                 </span>
-                {text}
-              </button>
-            )
-          })}
-        </div>
-      )}
+              ))
+            ) : (
+              <em>select the first node</em>
+            )}
+          </p>
+        )}
+
+        {q.type === 'mcq' && (
+          <div className="options" role="group" aria-label="Answer options">
+            {q.options.map((text, i) => {
+              const mark = closed && i === q.answer ? ' is-correct' : wrongOptions.includes(i) ? ' is-wrong' : ''
+              return (
+                <button
+                  type="button"
+                  key={i}
+                  className={`option${mark}`}
+                  onClick={() => chooseOption(i)}
+                  disabled={closed || wrongOptions.includes(i)}
+                >
+                  <span className="option-letter" aria-hidden="true">
+                    {LETTERS[i]}
+                  </span>
+                  {text}
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {q.type === 'slot' && (
+          <p className="muted slot-key">
+            Each + is an empty child link: a <code>null</code> reference where a new node could go.
+          </p>
+        )}
+      </div>
 
       {!closed && mistakes > 0 && (
         <p className="feedback is-wrong" role="status">
-          Not quite. {mistakes === 1 && hints.length ? 'Have a look at the hint below.' : 'Try again.'}
+          Not quite.{' '}
+          {misconception ?? (mistakes === 1 && hints.length ? 'Have a look at the hint below.' : 'Try again.')}
         </p>
       )}
 
@@ -229,10 +267,12 @@ export function QuestionCard({ question: q, index = 0, total = 1, onDone }: Ques
 
 interface QuizProps {
   questions: Question[]
+  /** Also bring the first question into view, for a quiz that replaces content the learner has scrolled past. */
+  revealFirst?: boolean
   onFinish: (answers: Answer[]) => void
 }
 
-export function Quiz({ questions, onFinish }: QuizProps) {
+export function Quiz({ questions, revealFirst = false, onFinish }: QuizProps) {
   const { record } = useProgress()
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState<Answer[]>([])
@@ -256,7 +296,14 @@ export function Quiz({ questions, onFinish }: QuizProps) {
           />
         ))}
       </ol>
-      <QuestionCard key={q.id} question={q} index={index} total={questions.length} onDone={next} />
+      <QuestionCard
+        key={q.id}
+        question={q}
+        index={index}
+        total={questions.length}
+        reveal={index > 0 || revealFirst}
+        onDone={next}
+      />
     </div>
   )
 }

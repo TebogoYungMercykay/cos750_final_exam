@@ -86,6 +86,15 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* The learner's text size setting. Everything sized in rem follows it. */
+:root[data-text='large'] {
+  font-size: 112.5%;
+}
+
+:root[data-text='larger'] {
+  font-size: 125%;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -311,6 +320,18 @@ code {
   padding: 0 clamp(16px, 4vw, 40px);
   background: color-mix(in srgb, var(--paper) 94%, transparent);
   border-bottom: 1px solid var(--line);
+}
+
+/*
+ * The blur sits on a layer behind the bar, not on the bar itself. A backdrop
+ * filter makes its element the containing block for fixed descendants, which
+ * would pin the phone tab bar to the header instead of the bottom of the screen.
+ */
+.topbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -659,7 +680,7 @@ textarea:focus {
   align-items: center;
   min-height: 38px;
   padding: 0 14px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 9px;
   font: 500 0.9rem var(--sans);
   color: var(--ink-2);
@@ -680,11 +701,17 @@ textarea:focus {
   outline-offset: 1px;
 }
 
-.segmented .is-on {
-  color: var(--ink);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-  font-weight: 600;
+/*
+ * One look for "this is the active choice" across the app: the hover look,
+ * accent text and an accent border, with no change of background or icon.
+ * The state itself is exposed as aria-pressed, aria-checked or a checked radio.
+ */
+.segmented label:hover,
+.segmented button:hover,
+.segmented .is-on,
+.chip-button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .chip-button {
@@ -701,6 +728,10 @@ textarea:focus {
 .chip-button:hover {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+.tree-source {
+  font-size: 0.88rem;
 }
 
 .inline-field {
@@ -1487,7 +1518,7 @@ table.mini {
 }
 
 .tree-node.is-queue .tree-node-body circle {
-  stroke: var(--good);
+  stroke: var(--accent);
   stroke-width: 2.5;
   stroke-dasharray: 5 4;
 }
@@ -1615,8 +1646,41 @@ table.mini {
   background: var(--accent);
 }
 
-.swatch.is-stack {
+.swatch.is-stack,
+.swatch.is-queue {
   border: 2px dashed var(--accent);
+}
+
+.tree-note rect {
+  fill: var(--ink);
+}
+
+.tree-note text {
+  font: 600 13px var(--sans);
+  text-anchor: middle;
+  fill: var(--surface);
+}
+
+.tree-ruler line {
+  stroke: var(--line);
+  stroke-dasharray: 2 6;
+}
+
+.tree-ruler text {
+  font: 500 14px var(--mono);
+  fill: var(--ink-3);
+}
+
+.tree-null line {
+  stroke: var(--line-2);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+
+.tree-null text {
+  font: 500 13px var(--mono);
+  text-anchor: middle;
+  fill: var(--ink-3);
 }
 
 .swatch.is-path,
@@ -1654,7 +1718,7 @@ table.mini {
 
 .player-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
   gap: 18px;
 }
 
@@ -1688,9 +1752,16 @@ table.mini {
 }
 
 .code > div {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
   padding: 1px 14px 1px 10px;
-  white-space: pre;
   transition: background 0.2s;
+}
+
+/* Long Java lines wrap, and a wrapped line stays aligned with the code, not the line numbers. */
+.code-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .code > div.is-active {
@@ -1700,9 +1771,35 @@ table.mini {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
+.code-box {
+  display: grid;
+  gap: 8px;
+}
+
+.code-lang {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.code-note {
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--ink-2);
+  background: var(--accent-soft);
+}
+
+.memory {
+  display: grid;
+  gap: 14px;
+}
+
 .code-num {
   display: inline-block;
-  width: 1.8em;
   color: var(--ink-3);
   user-select: none;
 }
@@ -1770,6 +1867,47 @@ table.mini {
   border: 1px solid var(--line);
 }
 
+.narration-why {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
+.narration-why svg {
+  flex: none;
+  margin-top: 4px;
+  color: var(--warn);
+}
+
+.pill-mode {
+  gap: 6px;
+}
+
+.pill-mode.is-guided {
+  color: var(--good);
+  background: var(--good-soft);
+}
+
+.frontier {
+  display: grid;
+  gap: 16px;
+}
+
+.interface {
+  display: grid;
+  gap: 8px;
+}
+
+.interface summary {
+  width: fit-content;
+  font-weight: 500;
+  color: var(--accent);
+  cursor: pointer;
+}
+
 .narration-step {
   font-size: 0.72rem;
   font-weight: 600;
@@ -1816,6 +1954,38 @@ table.mini {
   font: 400 clamp(1.2rem, 2.2vw, 1.45rem) / 1.35 var(--serif);
 }
 
+.question-answer {
+  display: grid;
+  gap: 14px;
+}
+
+.how-to {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 0.92rem;
+  color: var(--ink-2);
+}
+
+.how-to svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--accent);
+}
+
+.slot-key {
+  font-size: 0.9rem;
+}
+
+/* Results that receive focus after an action stop below the sticky header. */
+.reveal-target {
+  scroll-margin-top: 88px;
+}
+
+.reveal-target:focus {
+  outline: none;
+}
+
 .options {
   display: grid;
   gap: 10px;
@@ -1841,6 +2011,7 @@ table.mini {
 }
 
 .option:hover:not(:disabled) {
+  color: var(--accent);
   border-color: var(--accent);
   transform: translateX(2px);
 }
@@ -1862,8 +2033,8 @@ table.mini {
 }
 
 .option.is-selected {
+  color: var(--accent);
   border-color: var(--accent);
-  background: var(--accent-soft);
 }
 
 .option.is-correct {
@@ -1993,6 +2164,13 @@ table.mini {
 .explorer {
   display: grid;
   gap: 14px;
+}
+
+.figure-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
 }
 
 .explorer-grid {
@@ -2223,6 +2401,231 @@ table.mini {
   justify-content: flex-end;
 }
 
+.settings {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.setting {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.setting-label,
+.subhead {
+  font: 600 0.72rem var(--sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.subhead {
+  margin: 18px 0 8px;
+}
+
+.history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.93rem;
+}
+
+.history li:last-child {
+  border-bottom: 0;
+}
+
+.lecture-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.card-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.recall {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.demo-seed {
+  font-weight: 600;
+  color: var(--warn);
+}
+
+/* Printing the progress page prints the lecture card and nothing else. */
+@media print {
+  .page:has(.lecture-card) .back,
+  .page:has(.lecture-card) .page-head,
+  .progress-grid > :not(.lecture-card),
+  .topbar,
+  .tabs,
+  .footer,
+  .skip,
+  .backdrop,
+  .toast,
+  .tour,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .progress-grid {
+    display: block;
+  }
+
+  .lecture-card {
+    border: 0;
+    box-shadow: none;
+  }
+}
+
+/* ========================================================================== */
+/* Tour                                                                       */
+/* ========================================================================== */
+
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tour.is-shown {
+  opacity: 1;
+}
+
+.tour-scrim {
+  position: absolute;
+  inset: 0;
+}
+
+.tour-scrim.is-dark {
+  background: rgba(8, 15, 26, 0.55);
+}
+
+.tour-spot {
+  position: absolute;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 3px var(--accent-2),
+    0 0 0 9999px rgba(8, 15, 26, 0.55);
+  pointer-events: none;
+  transition:
+    top 0.3s var(--ease),
+    left 0.3s var(--ease),
+    width 0.3s var(--ease),
+    height 0.3s var(--ease);
+}
+
+.tour-card {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 24px);
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.tour-count {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.tour-title {
+  font: 500 1.3rem/1.25 var(--serif);
+}
+
+.tour-title:focus {
+  outline: none;
+}
+
+/* When the card is taller than the window, only the text scrolls; the buttons always stay in view. */
+.tour-card > * {
+  flex: none;
+}
+
+.tour-card > .tour-body {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  color: var(--ink-2);
+}
+
+.tour-dots {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tour-dots li {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--accent);
+  border-radius: 50%;
+}
+
+.tour-dots li.is-done,
+.tour-dots li.is-now {
+  background: var(--accent);
+}
+
+.tour-dots li.is-now {
+  width: 20px;
+  border-radius: 999px;
+}
+
+.tour-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tour-spacer {
+  flex: 1;
+}
+
 /* ========================================================================== */
 /* Motion                                                                     */
 /* ========================================================================== */
@@ -2302,7 +2705,8 @@ table.mini {
   }
 
   .player-grid,
-  .explorer-grid {
+  .explorer-grid,
+  .figure-split {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -2310,7 +2714,8 @@ table.mini {
 @media (max-width: 760px) {
   .hero-split,
   .compare,
-  .progress-grid {
+  .progress-grid,
+  .lecture-card-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

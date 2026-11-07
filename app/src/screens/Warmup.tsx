@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, Sprout } from 'lucide-react'
 import { useState } from 'react'
 import { CONFIDENCE, needsGuidance, WARMUP } from '../content/assessment'
 import { Quiz } from '../components/QuestionCard'
+import { MODES } from '../content/modes'
 import { useProgress } from '../state/progress'
 import { href } from '../state/router'
 
@@ -43,7 +44,7 @@ export function Warmup() {
             ))}
           </div>
           <p className="muted">
-            Any answer is fine; this app assumes no prior knowledge. Next come four quick questions on ideas we will
+            Any answer is fine; this app assumes no knowledge of trees. Next come four quick questions on ideas we will
             build on. They do not count for marks.
           </p>
           <div className="row">
@@ -87,9 +88,14 @@ export function Warmup() {
           {outcome.guided ? (
             <>
               <p>
-                <strong>Guided mode</strong> is now on: hints are shown from the start and animations run slower. You
-                can switch modes at any time with the button at the top.
+                <strong>Guided mode</strong> is now on. {MODES.guided.summary} You can switch modes at any time with the
+                button at the top.
               </p>
+              <ul className="takeaways">
+                {MODES.guided.features.map((feature) => (
+                  <li key={feature}>{feature}</li>
+                ))}
+              </ul>
               <div className="callout">
                 <strong>A quick refresher before you start</strong>
                 <ul>
@@ -113,8 +119,8 @@ export function Warmup() {
             </>
           ) : (
             <p>
-              You are in <strong>standard mode</strong>. Hints appear when you need them. Prefer more support? Switch to
-              guided mode at the top at any time.
+              You are in <strong>standard mode</strong>. {MODES.standard.summary} Prefer more support? Guided mode shows
+              every line of code with the reason for each step; switch at the top at any time.
             </p>
           )}
           <div className="row">

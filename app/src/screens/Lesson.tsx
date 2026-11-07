@@ -13,6 +13,7 @@ import { FrontierPlayer } from '../components/FrontierPlayer'
 import { Explorer, Reflect } from '../components/LessonParts'
 import { QuestionCard, Quiz } from '../components/QuestionCard'
 import { StepPlayer } from '../components/StepPlayer'
+import { TourLauncher } from '../components/TourLauncher'
 import { TreeView } from '../components/TreeView'
 import { MODULES, OUTCOMES } from '../content/modules'
 import type { Module, Section } from '../content/types'
@@ -39,6 +40,22 @@ function SectionBody({ section, onTried }: { section: Section; onTried: () => vo
           />
           <figcaption>{section.caption}</figcaption>
         </figure>
+      )
+    case 'figure':
+      return (
+        <div className="figure-split">
+          <figure className="figure">
+            <TreeView
+              tree={section.tree}
+              label={section.title}
+              notes={(key) => section.labels?.[key]}
+              ruler={section.ruler}
+              nulls={section.nulls}
+            />
+            <figcaption>{section.caption}</figcaption>
+          </figure>
+          <div className="prose">{section.body}</div>
+        </div>
       )
     case 'animate':
       return <StepPlayer tree={section.tree} kind={section.kind} keyValue={section.key} callout={section.callout} />
@@ -110,6 +127,7 @@ export function Lesson({ module: m }: { module: Module }) {
         </h1>
         <div
           className="meter"
+          data-tour="lesson-meter"
           role="progressbar"
           aria-label="Lesson progress"
           aria-valuenow={Math.round((reached / total) * 100)}
@@ -122,17 +140,23 @@ export function Lesson({ module: m }: { module: Module }) {
 
       {phase === 'intro' && (
         <div className="card rise">
+          <TourLauncher id="lesson" />
           <div className="prose hook">{m.hook}</div>
+          <div className="callout recall">
+            <strong>What you already know</strong>
+            <div className="prose">{m.recall}</div>
+          </div>
           <h2 className="display-3">By the end of this lesson you will be able to</h2>
-          <p className="objective">
+          <p className="objective" data-tour="lesson-objective">
             <Target size={20} aria-hidden="true" />
             {OUTCOMES[m.lo].text}
           </p>
           <p className="muted">
             About {m.minutes} minutes: {m.sections.length} short steps and a {m.quiz.length} question checkpoint.
-            {progress.mode === 'guided' && ' Guided mode shows hints from the start.'}
+            {progress.mode === 'guided' &&
+              ' In guided mode every animation shows each line of code with the reason for it, and every question shows its first hint.'}
           </p>
-          <div className="row">
+          <div className="row" data-tour="lesson-start">
             <button type="button" className="btn btn-primary btn-lg" onClick={() => setPhase('learn')}>
               Start the lesson
               <ArrowRight size={18} aria-hidden="true" />
@@ -146,7 +170,8 @@ export function Lesson({ module: m }: { module: Module }) {
 
       {phase === 'learn' && (
         <div className="lesson-grid">
-          <nav className="outline" aria-label="Lesson steps">
+          <TourLauncher id="lesson-steps" />
+          <nav className="outline" aria-label="Lesson steps" data-tour="lesson-outline">
             <ol>
               {m.sections.map((s, i) => (
                 <li key={i}>
@@ -163,7 +188,7 @@ export function Lesson({ module: m }: { module: Module }) {
               ))}
             </ol>
           </nav>
-          <article className="card rise" key={index}>
+          <article className="card rise" key={index} data-tour="lesson-step">
             <p className="step-kicker">
               Step {index + 1} of {m.sections.length}
             </p>
@@ -172,7 +197,7 @@ export function Lesson({ module: m }: { module: Module }) {
               {sectionTitle(section)}
             </h2>
             <SectionBody section={section} onTried={forward} />
-            <div className="row row-split">
+            <div className="row row-split" data-tour="lesson-nav">
               <button type="button" className="btn" onClick={() => (index ? setIndex(index - 1) : setPhase('intro'))}>
                 <ArrowLeft size={18} aria-hidden="true" />
                 Back

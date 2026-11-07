@@ -1,6 +1,20 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { childCount, fromKeys, insert, isBst, leaves, levelCount, node, searchPath, size } from './bst'
+import {
+  childCount,
+  firstViolation,
+  fromKeys,
+  fromSpec,
+  insert,
+  isBst,
+  leaves,
+  levelCount,
+  node,
+  nullLinks,
+  searchPath,
+  size,
+  violatedAncestor,
+} from './bst'
 
 const uniqueKeys = fc.uniqueArray(fc.integer({ min: -999, max: 999 }), { maxLength: 40 })
 
@@ -60,6 +74,45 @@ describe('levelCount', () => {
 
   it('stays small when keys arrive in a balancing order', () => {
     expect(levelCount(fromKeys([4, 2, 6, 1, 3, 5, 7]))).toBe(3)
+  })
+})
+
+describe('violatedAncestor', () => {
+  it('names the parent when the node is on the wrong side of its parent', () => {
+    expect(violatedAncestor(fromSpec([50, 51, null]), 51)).toEqual({ ancestor: 50, parent: 50 })
+  })
+
+  it('names an ancestor further up when the parent is fine', () => {
+    expect(violatedAncestor(fromSpec([25, [15, 10, 30], 40]), 30)).toEqual({ ancestor: 25, parent: 15 })
+  })
+
+  it('finds nothing for a correctly placed node, the root, or a key that is not there', () => {
+    const tree = fromKeys([50, 30, 70])
+    expect(violatedAncestor(tree, 30)).toBeNull()
+    expect(violatedAncestor(tree, 50)).toBeNull()
+    expect(violatedAncestor(tree, 99)).toBeNull()
+  })
+
+  it('finds nothing anywhere in a tree built by insert', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => {
+        const tree = fromKeys(keys)
+        return keys.every((k) => violatedAncestor(tree, k) === null) && firstViolation(tree) === null
+      }),
+    )
+  })
+})
+
+describe('nullLinks', () => {
+  it('names every empty child link, left to right as drawn', () => {
+    expect(nullLinks(fromKeys([8, 3, 10, 6]))).toEqual(['3.left', '6.left', '6.right', '10.left', '10.right'])
+    expect(nullLinks(null)).toEqual([])
+  })
+
+  it('finds one more null link than there are nodes', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => nullLinks(fromKeys(keys)).length === (keys.length ? keys.length + 1 : 0)),
+    )
   })
 })
 

@@ -127,6 +127,41 @@ export interface Slot {
   side: Side | null
 }
 
+/**
+ * The nearest ancestor that `key` is on the wrong side of, with its parent,
+ * or null when the node is correctly placed or not in the tree. Follows the
+ * real path to the node, so it works on trees that break the BST rule.
+ */
+export function violatedAncestor(root: Tree, key: number): { ancestor: number; parent: number } | null {
+  const path: { key: number; side: Side }[] = []
+  const walk = (n: Tree): boolean => {
+    if (n === null) return false
+    if (n.key === key) return true
+    for (const side of ['left', 'right'] as const) {
+      path.push({ key: n.key, side })
+      if (walk(n[side])) return true
+      path.pop()
+    }
+    return false
+  }
+  if (!walk(root) || path.length === 0) return null
+  for (let i = path.length - 1; i >= 0; i--) {
+    const { key: a, side } = path[i]
+    if (side === 'left' ? key >= a : key <= a) return { ancestor: a, parent: path[path.length - 1].key }
+  }
+  return null
+}
+
+/** Every empty child link, left to right as the tree is drawn, named the way Java reaches it, such as "3.left". */
+export function nullLinks(root: Tree): string[] {
+  if (root === null) return []
+  const below = (side: Side) => {
+    const child = root[side]
+    return child === null ? [`${root.key}.${side}`] : nullLinks(child)
+  }
+  return [...below('left'), ...below('right')]
+}
+
 /** The empty child link a key would be inserted into. */
 export function insertSlot(root: Tree, key: number): Slot {
   if (root === null) return { parent: null, side: null }
