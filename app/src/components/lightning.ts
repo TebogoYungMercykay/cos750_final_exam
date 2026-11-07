@@ -11,6 +11,8 @@ export const WINDOW_MS = 10 * 60 * 1000
 export const SHOW_MS = 4800
 /** The least quiet time between two strikes. */
 const GAP_MS = 2000
+/** When the first window's first strike may come, so a learner sees one soon after arriving. */
+export const FIRST_STRIKE_MS = { min: 20_000, max: 60_000 }
 
 export interface Show {
   /** Milliseconds after the window opens. */
@@ -21,12 +23,18 @@ export interface Show {
 /**
  * One window's strikes: each variant once, in a random order, at random
  * times, so there is no fixed rotation to notice. Offsets are spread out so
- * strikes never overlap, and the last one ends inside the window.
+ * strikes never overlap, and the last one ends inside the window. In the
+ * first window the first strike comes early, within FIRST_STRIKE_MS.
  */
-export function planWindow(rng: Rng): Show[] {
+export function planWindow(rng: Rng, first = false): Show[] {
   const slot = SHOW_MS + GAP_MS
   const slack = WINDOW_MS - VARIANTS.length * slot
-  const offsets = VARIANTS.map(() => Math.floor(rng() * slack)).sort((a, b) => a - b)
+  let offsets = VARIANTS.map(() => Math.floor(rng() * slack)).sort((a, b) => a - b)
+  if (first) {
+    const { min, max } = FIRST_STRIKE_MS
+    const early = min + Math.floor(rng() * (max - min))
+    offsets = offsets.map((o, i) => (i === 0 ? early : Math.max(o, early)))
+  }
   const order = shuffle(VARIANTS, rng)
   return offsets.map((offset, i) => ({ at: offset + i * slot, variant: order[i] }))
 }

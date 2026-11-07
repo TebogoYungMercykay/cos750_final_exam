@@ -331,6 +331,20 @@ test.describe('the corner tree', () => {
     }
     expect([...seen].sort()).toEqual(['delete-by-copying', 'delete-leaf', 'insert'])
   })
+
+  test('strikes for the first time within a minute of arriving', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'the corner tree is hidden on small screens')
+    await page.clock.install()
+    await asLearner(page)
+    await page.goto('./#/lesson/m1')
+    const corner = page.locator('canvas.lightning')
+    let struck = false
+    for (let elapsed = 0; elapsed <= 60_000 && !struck; elapsed += 3000) {
+      await page.clock.fastForward(3000)
+      struck = (await corner.getAttribute('data-strike')) !== null
+    }
+    expect(struck).toBe(true)
+  })
 })
 
 test('the corner tree stays still for a learner who prefers reduced motion', async ({ page }, info) => {
