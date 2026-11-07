@@ -12,7 +12,7 @@ This repository is part of an assessed University of Pretoria project (COS750, 2
 
 ## Reporting Issues
 
-Open a GitHub issue that says what you did, what you expected and what happened. Include the screen or lesson, the browser and device, whether the light or dark theme was on, and a screenshot if it helps. Security issues go through the [Security Policy](SECURITY.md) instead.
+Open a GitHub issue with the bug report or feature request template. A bug report says what you did, what you expected and what happened. Include the screen or lesson, the browser and device, whether the light or dark theme was on, and a screenshot if it helps. Security issues go through the [Security Policy](SECURITY.md) instead.
 
 ## Making a Change
 
@@ -20,7 +20,7 @@ Open a GitHub issue that says what you did, what you expected and what happened.
 2. Follow the [Coding Standards](docs/coding-standards.md), in particular its correctness rules.
 3. Run `./treetutor all` and make sure everything passes. Add a regression test for any bug you fix. The [Development Guide](docs/development.md) explains each command.
 4. If you change lesson content, the content tests must still pass. Fix the content, never loosen the test to fit it.
-5. Open a pull request into `develop` with a one-line summary and a few bullets of changes, and merge it with a merge commit. `develop` is merged into `master` after review.
+5. Open a pull request into `develop`. The template asks for a one-line summary, a few bullets of changes, the requirement IDs it delivers and a reviewer who did not write the code, and its checklist is the review checklist. Merge it with a merge commit. `develop` is merged into `master` after review.
 
 New to pull requests? See [GitHub's guide to pull requests](https://docs.github.com/en/pull-requests).
 
