@@ -20,9 +20,12 @@ How code, tests and documentation are written in this repository. The aim is tha
 ```
 cos750_final_exam/
 ├── treetutor                   # run script: setup, dev, test, e2e, lint, format, build, check, all
-├── .github/workflows/
-│   ├── ci.yml                  # treetutor check, treetutor e2e, then deploy to GitHub Pages from master
-│   └── push.yml                # flags pushes to master or develop that are not merges
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml              # treetutor check and treetutor e2e on every branch; deploy to GitHub Pages from master or main
+│   │   └── push.yml            # flags pushes to master or develop that are not merges
+│   ├── pull_request_template.md  # summary, changes, requirement IDs, the review checklist, reviewer
+│   └── ISSUE_TEMPLATE/         # bug report and feature request; blank issues are off
 ├── docs/                       # guides, see the README's documentation table
 │   └── assets/                 # images used by the docs
 └── app/
