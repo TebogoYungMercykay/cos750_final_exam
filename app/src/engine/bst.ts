@@ -66,7 +66,6 @@ export function levelCount(root: Tree): number {
   return root === null ? 0 : 1 + Math.max(levelCount(root.left), levelCount(root.right))
 }
 
-/** Height in edges, so a single node has height 0 and the empty tree -1. */
 export function height(root: Tree): number {
   return levelCount(root) - 1
 }
@@ -82,7 +81,6 @@ export function fromSpec(spec: TreeSpec): Tree {
   return node(key, fromSpec(left), fromSpec(right))
 }
 
-/** Searches every node, not only the BST path, because question trees may break the rule. */
 export function findNode(root: Tree, key: number): TreeNode | null {
   if (root === null) return null
   if (root.key === key) return root
@@ -100,6 +98,10 @@ export function depthOf(root: Tree, key: number, depth = 0): number {
   if (root.key === key) return depth
   const left = depthOf(root.left, key, depth + 1)
   return left !== -1 ? left : depthOf(root.right, key, depth + 1)
+}
+
+export function childCount(n: TreeNode): number {
+  return (n.left ? 1 : 0) + (n.right ? 1 : 0)
 }
 
 export function leaves(root: Tree): number[] {
