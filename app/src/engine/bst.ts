@@ -58,7 +58,6 @@ export function isBst(root: Tree, low = -Infinity, high = Infinity): boolean {
   return isBst(root.left, low, root.key) && isBst(root.right, root.key, high)
 }
 
-
 export function size(root: Tree): number {
   return root === null ? 0 : 1 + size(root.left) + size(root.right)
 }
