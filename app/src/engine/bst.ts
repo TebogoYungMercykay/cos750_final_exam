@@ -71,6 +71,36 @@ export function height(root: Tree): number {
   return root === null ? 0 : 1 + Math.max(height(root.left), height(root.right))
 }
 
+/**
+ * Deletion by copying, as the COS212 textbook does it (Drozdek, section
+ * 6.6.2): a node with two children takes the key of its immediate
+ * predecessor, the rightmost node of its left subtree, and that node is
+ * removed instead. Returns a new tree; a key that is not there returns the
+ * same tree.
+ */
+export function remove(root: Tree, key: number): Tree {
+  if (root === null) return null
+  if (key < root.key) {
+    const left = remove(root.left, key)
+    return left === root.left ? root : node(root.key, left, root.right)
+  }
+  if (key > root.key) {
+    const right = remove(root.right, key)
+    return right === root.right ? root : node(root.key, root.left, right)
+  }
+  if (root.left === null) return root.right
+  if (root.right === null) return root.left
+  const before = predecessorOf(root)
+  return node(before, remove(root.left, before), root.right)
+}
+
+/** The immediate predecessor of a node with a left subtree: the key of the rightmost node in that subtree. */
+export function predecessorOf(n: TreeNode): number {
+  let current = n.left!
+  while (current.right) current = current.right
+  return current.key
+}
+
 /** A tree written as nested arrays: a key, or [key, left, right], or null. */
 export type TreeSpec = number | null | [number, TreeSpec?, TreeSpec?]
 

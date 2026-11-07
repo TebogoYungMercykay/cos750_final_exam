@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Background } from './components/Background'
+import { LightningTree } from './components/LightningTree'
 import { Header, Toast } from './components/Shell'
 import { Tour } from './components/Tour'
 import { MODULE_BY_ID } from './content/modules'
@@ -67,6 +68,7 @@ export default function App() {
         Skip to content
       </a>
       <Background hero={shown.name === 'home'} />
+      {shown.name !== 'home' && <LightningTree />}
       <Header current={shown.name} />
       <main id="main" ref={mainRef} tabIndex={-1} className="view" key={path}>
         <Screen route={shown} />

@@ -11,10 +11,13 @@ import {
   leaves,
   node,
   nullLinks,
+  predecessorOf,
+  remove,
   searchPath,
   size,
   violatedAncestor,
 } from './bst'
+import { depthFirstOrder } from './traversal'
 
 const uniqueKeys = fc.uniqueArray(fc.integer({ min: -999, max: 999 }), { maxLength: 40 })
 
@@ -74,6 +77,42 @@ describe('height', () => {
 
   it('stays small when keys arrive in a balancing order', () => {
     expect(height(fromKeys([4, 2, 6, 1, 3, 5, 7]))).toBe(3)
+  })
+})
+
+describe('remove', () => {
+  const tree = fromKeys([50, 30, 70, 20, 40, 60, 80, 35])
+
+  it('removes a leaf, and a node with one child by lifting the child', () => {
+    expect(depthFirstOrder(remove(tree, 20), 'in')).toEqual([30, 35, 40, 50, 60, 70, 80])
+    expect(remove(tree, 40)!.left!.right!.key).toBe(35)
+  })
+
+  it('gives a node with two children the key of its immediate predecessor, as Drozdek does', () => {
+    expect(predecessorOf(tree!)).toBe(40)
+    expect(remove(tree, 50)!.key).toBe(40)
+    expect(remove(tree, 30)!.left!.key).toBe(20)
+  })
+
+  it('returns the same tree for a key that is not there, and keeps its input untouched', () => {
+    const copy = JSON.stringify(tree)
+    expect(remove(tree, 99)).toBe(tree)
+    expect(remove(tree, 1)).toBe(tree)
+    remove(tree, 50)
+    expect(JSON.stringify(tree)).toBe(copy)
+    expect(remove(null, 1)).toBeNull()
+  })
+
+  it('keeps a BST with every other key, whichever key goes', () => {
+    fc.assert(
+      fc.property(uniqueKeys, fc.nat(), (keys, pick) => {
+        if (keys.length === 0) return true
+        const key = keys[pick % keys.length]
+        const after = remove(fromKeys(keys), key)
+        const rest = keys.filter((k) => k !== key).sort((a, b) => a - b)
+        return isBst(after) && depthFirstOrder(after, 'in').join() === rest.join()
+      }),
+    )
   })
 })
 
