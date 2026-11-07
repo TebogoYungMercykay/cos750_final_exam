@@ -175,13 +175,13 @@ export function LightningTree() {
       frame = requestAnimationFrame(tick)
     }
 
-    const openWindow = () => {
-      for (const show of planWindow(Math.random)) {
+    const openWindow = (first: boolean) => {
+      for (const show of planWindow(Math.random, first)) {
         timers.push(window.setTimeout(() => play(strike(show.variant, Math.random)), show.at))
       }
-      timers.push(window.setTimeout(openWindow, WINDOW_MS))
+      timers.push(window.setTimeout(() => openWindow(false), WINDOW_MS))
     }
-    openWindow()
+    openWindow(true)
 
     return () => {
       for (const id of timers) window.clearTimeout(id)
