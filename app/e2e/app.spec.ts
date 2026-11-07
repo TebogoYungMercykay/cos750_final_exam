@@ -311,6 +311,39 @@ test('progress: text size applies to the whole page, and the lecture card can be
   await expect(button(page, 'Print or save as PDF')).toBeVisible()
 })
 
+test.describe('the corner tree', () => {
+  test.use({ reducedMotion: 'no-preference' })
+
+  test('is struck by all three animations within ten minutes, and never on the home page', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'the corner tree is hidden on small screens')
+    await page.clock.install()
+    await asLearner(page)
+    await page.goto('./')
+    await expect(page.locator('canvas.lightning')).toHaveCount(0)
+    await page.goto('./#/lesson/m1')
+    const corner = page.locator('canvas.lightning')
+    await expect(corner).toHaveCount(1)
+    const seen = new Set<string>()
+    for (let elapsed = 0; elapsed <= 10 * 60 * 1000; elapsed += 3000) {
+      await page.clock.fastForward(3000)
+      const strike = await corner.getAttribute('data-strike')
+      if (strike) seen.add(strike)
+    }
+    expect([...seen].sort()).toEqual(['delete-by-copying', 'delete-leaf', 'insert'])
+  })
+})
+
+test('the corner tree stays still for a learner who prefers reduced motion', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the corner tree is hidden on small screens')
+  await page.clock.install()
+  await asLearner(page)
+  await page.goto('./#/lesson/m1')
+  for (let elapsed = 0; elapsed <= 10 * 60 * 1000; elapsed += 3000) {
+    await page.clock.fastForward(3000)
+    await expect(page.locator('canvas.lightning')).not.toHaveAttribute('data-strike')
+  }
+})
+
 test('the app never contacts another server', async ({ page, baseURL }) => {
   const origin = new URL(baseURL!).origin
   const elsewhere: string[] = []

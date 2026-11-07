@@ -25,8 +25,8 @@
   --bad: #b02e36;
   --bad-soft: #f9e2e3;
   --on-bad: #ffffff;
-  --dot: rgba(15, 27, 42, 0.18);
-  --bg-line: rgba(15, 27, 42, 0.16);
+  --dot: rgba(15, 27, 42, 0.1);
+  --bg-line: rgba(15, 27, 42, 0.26);
   --bg-glow: #1f6fc9;
   --shadow-sm: 0 1px 2px rgba(15, 27, 42, 0.06);
   --shadow: 0 1px 2px rgba(15, 27, 42, 0.05), 0 12px 32px -18px rgba(15, 27, 42, 0.26);
@@ -62,8 +62,8 @@
   --bad: #f08a8f;
   --bad-soft: #3a1c22;
   --on-bad: #1f0a0c;
-  --dot: rgba(233, 238, 245, 0.12);
-  --bg-line: rgba(233, 238, 245, 0.13);
+  --dot: rgba(233, 238, 245, 0.07);
+  --bg-line: rgba(233, 238, 245, 0.2);
   --bg-glow: #6ea8f5;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 32px -18px rgba(0, 0, 0, 0.7);
@@ -180,6 +180,23 @@ code {
   z-index: 0;
   pointer-events: none;
   mask-image: linear-gradient(90deg, transparent 22%, #000 62%);
+}
+
+/* The small tree that lightning strikes, on pages where the big tree sits to the side. */
+.lightning {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 0;
+  width: 240px;
+  height: 170px;
+  pointer-events: none;
+}
+
+@media (max-width: 760px), (prefers-reduced-motion: reduce) {
+  .lightning {
+    display: none;
+  }
 }
 
 @media (max-width: 760px) {

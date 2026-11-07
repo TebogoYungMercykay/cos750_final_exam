@@ -41,8 +41,15 @@ function buildTree() {
 
 function readColours() {
   const css = getComputedStyle(document.documentElement)
-  return { line: css.getPropertyValue('--bg-line').trim(), glow: css.getPropertyValue('--bg-glow').trim() }
+  return {
+    line: css.getPropertyValue('--bg-line').trim(),
+    glow: css.getPropertyValue('--bg-glow').trim(),
+    paper: css.getPropertyValue('--paper').trim(),
+  }
 }
+
+/** Line widths, in CSS pixels. */
+const WIDTH = { chord: 1.05, edge: 1.5, glow: 2.4, mask: 5 }
 
 /** Decorative, so it is hidden from assistive technology and never takes pointer events. */
 export function Background({ hero }: { hero: boolean }) {
@@ -121,7 +128,7 @@ export function Background({ hero }: { hero: boolean }) {
 
       ctx.clearRect(0, 0, width, height)
       ctx.globalAlpha = view.alpha
-      ctx.lineWidth = 0.7
+      ctx.lineWidth = WIDTH.chord
       ctx.strokeStyle = colours.line
       ctx.beginPath()
       for (const [a, b] of chords) {
@@ -131,17 +138,23 @@ export function Background({ hero }: { hero: boolean }) {
       ctx.globalAlpha = view.alpha * 0.45
       ctx.stroke()
 
-      ctx.globalAlpha = view.alpha
-      ctx.lineWidth = 1
-      ctx.beginPath()
+      // A band of page colour under each edge hides the dot grid there, so the tree sits over the dots.
+      const edgePath = new Path2D()
       for (const [a, b] of edges) {
-        ctx.moveTo(projected[a].x, projected[a].y)
-        ctx.lineTo(projected[b].x, projected[b].y)
+        edgePath.moveTo(projected[a].x, projected[a].y)
+        edgePath.lineTo(projected[b].x, projected[b].y)
       }
-      ctx.stroke()
+      ctx.globalAlpha = Math.min(1, view.alpha * 1.4)
+      ctx.lineWidth = WIDTH.mask
+      ctx.strokeStyle = colours.paper
+      ctx.stroke(edgePath)
+      ctx.globalAlpha = view.alpha
+      ctx.lineWidth = WIDTH.edge
+      ctx.strokeStyle = colours.line
+      ctx.stroke(edgePath)
 
       ctx.strokeStyle = colours.glow
-      ctx.lineWidth = 1.6
+      ctx.lineWidth = WIDTH.glow
       for (const [a, b] of edges) {
         const glow = lit(points[b].level - 0.5)
         if (glow <= 0.02) continue
