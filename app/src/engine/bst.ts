@@ -127,6 +127,16 @@ export interface Slot {
   side: Side | null
 }
 
+/** Every empty child link, left to right as the tree is drawn, named the way Java reaches it, such as "3.left". */
+export function nullLinks(root: Tree): string[] {
+  if (root === null) return []
+  const below = (side: Side) => {
+    const child = root[side]
+    return child === null ? [`${root.key}.${side}`] : nullLinks(child)
+  }
+  return [...below('left'), ...below('right')]
+}
+
 /** The empty child link a key would be inserted into. */
 export function insertSlot(root: Tree, key: number): Slot {
   if (root === null) return { parent: null, side: null }

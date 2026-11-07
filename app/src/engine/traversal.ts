@@ -2,7 +2,7 @@ import type { Tree, TreeNode } from './bst'
 
 export type FrontierKind = 'queue' | 'stack'
 
-interface Frontier {
+export interface Frontier {
   addChildren(children: TreeNode[]): void
   remove(): TreeNode
   isEmpty(): boolean
@@ -47,8 +47,12 @@ export interface SearchStep {
  * the walk is breadth first (queue) or depth first (stack). The first step is
  * the start state, before any node is visited.
  */
+export function makeFrontier(kind: FrontierKind): Frontier {
+  return kind === 'queue' ? queueFrontier() : stackFrontier()
+}
+
 export function* uninformedSearch(root: Tree, kind: FrontierKind, target?: number): Generator<SearchStep> {
-  const frontier = kind === 'queue' ? queueFrontier() : stackFrontier()
+  const frontier = makeFrontier(kind)
   const order: number[] = []
   if (root !== null) frontier.addChildren([root])
   yield { visited: null, order: [], frontier: frontier.keys(), found: false }

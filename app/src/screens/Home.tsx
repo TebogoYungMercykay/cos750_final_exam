@@ -2,6 +2,7 @@ import { ArrowRight, ChartColumn, Check, Dumbbell, FlaskConical, GraduationCap }
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { BADGES } from '../content/badges'
 import { MODULES, OUTCOMES, OUTCOME_IDS, TREES } from '../content/modules'
+import { TourLauncher } from '../components/TourLauncher'
 import { TreeView } from '../components/TreeView'
 import { useProgress } from '../state/progress'
 import { href } from '../state/router'
@@ -47,9 +48,10 @@ function Welcome() {
           Binary search trees, <em>before</em> the lecture.
         </h1>
         <p className="lede">
-          Your personal tutor for <strong>binary search trees</strong> and <strong>tree traversals</strong>. No prior
-          knowledge needed. In about an hour of short lessons you will learn the ideas with interactive animations and
-          practise until you feel ready for the lecture.
+          Your personal tutor for <strong>binary search trees</strong> and <strong>tree traversals</strong>. You can
+          read Java and know classes and references; no knowledge of trees is needed. In about an hour of short lessons
+          you will see every idea run step by step beside its Java code, and practise until you feel ready for the
+          lecture.
         </p>
         <form
           className="name-form"
@@ -140,6 +142,7 @@ export function Home() {
 
   return (
     <>
+      <TourLauncher id="home" />
       <section className="hero">
         <div className="hero-copy rise">
           <p className="eyebrow">
@@ -150,7 +153,7 @@ export function Home() {
             Trees, searched <em>step by step</em>.
           </h1>
           <p className="lede">{status}</p>
-          <div className="row">
+          <div className="row" data-tour="cta">
             <a className="btn btn-primary btn-lg" href={cta.to}>
               {cta.label}
               <ArrowRight size={18} aria-hidden="true" />
@@ -160,7 +163,7 @@ export function Home() {
             </a>
           </div>
         </div>
-        <dl className="stats rise" style={{ '--delay': '120ms' } as CSSProperties}>
+        <dl data-tour="stats" className="stats rise" style={{ '--delay': '120ms' } as CSSProperties}>
           <div>
             <dt>Lessons</dt>
             <dd>
@@ -197,7 +200,7 @@ export function Home() {
           }
           lede="Walk them in order, the way a traversal visits nodes. Each one opens with a familiar idea, shows worked examples, lets you try, and ends with a short checkpoint."
         />
-        <ol className="path">
+        <ol className="path" data-tour="path">
           {MODULES.map((m, i) => {
             const Icon = m.icon
             const finished = Boolean(progress.modules[m.id])

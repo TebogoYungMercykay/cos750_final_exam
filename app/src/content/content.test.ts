@@ -1,19 +1,30 @@
 import { describe, expect, it } from 'vitest'
 import { depthFirstOrder } from '../engine/traversal'
-import { findNode, firstViolation, fromKeys, height, searchPath, type Tree } from '../engine/bst'
+import { findNode, firstViolation, fromKeys, height, leaves, searchPath, type Tree } from '../engine/bst'
 import { seeded } from '../engine/random'
 import { traversalOrder, TRAVERSALS } from '../engine/traces'
 import { BANK, GENERATORS, needsGuidance, questionFor, readinessSet, WARMUP } from './assessment'
 import { BADGES } from './badges'
+import { MODES, SPEED } from './modes'
 import { MODULES, OUTCOMES, OUTCOME_IDS } from './modules'
-import type { Question } from './types'
+import { bodyOf, stepsFor, TOURS, type TourId } from './tours'
+import { lessonEvents } from './gagne'
+import { BLOOM, type Question } from './types'
 
 const keysOf = (tree: Tree) => depthFirstOrder(tree, 'in')
 
 /** Structural rules every question must meet, authored or generated. */
 function expectValid(q: Question) {
   expect(q.prompt.trim(), q.id).not.toBe('')
+  expect(BLOOM, q.id).toContain(q.bloom)
+  if (q.lo !== 'PRE') expect(OUTCOMES[q.lo].bloom, `${q.id} at ${q.bloom}`).toContain(q.bloom)
   if (q.type === 'mcq') {
+    expect(q.feedback, q.id).toHaveLength(q.options.length)
+    q.feedback.forEach((text, i) =>
+      i === q.answer
+        ? expect(text, `${q.id} answer`).toBe('')
+        : expect(text.trim(), `${q.id} option ${i}`).not.toBe(''),
+    )
     expect(q.answer, q.id).toBeGreaterThanOrEqual(0)
     expect(q.answer, q.id).toBeLessThan(q.options.length)
     expect(new Set(q.options).size, q.id).toBe(q.options.length)
@@ -111,6 +122,13 @@ describe('generated questions', () => {
       if (q.type === 'mcq' && q.prompt.startsWith('What is the height')) {
         expect(Number(q.options[q.answer])).toBe(height(q.tree ?? null))
       }
+      if (q.type === 'mcq' && q.prompt.startsWith('These keys are inserted')) {
+        const order = q.prompt
+          .match(/BST: ([\d, ]+)\./)![1]
+          .split(', ')
+          .map(Number)
+        expect(Number(q.options[q.answer])).toBe(height(fromKeys(order)))
+      }
       if (q.type === 'mcq' && q.prompt.startsWith('How many nodes')) {
         const key = Number(q.prompt.match(/searching for (\d+)/)![1])
         expect(Number(q.options[q.answer])).toBe(searchPath(q.tree ?? null, key).compared.length)
@@ -125,12 +143,20 @@ describe('generated questions', () => {
     expect(answers).toEqual(new Set([0, 1]))
   })
 
-  it('draws LO6 from the bank with a fresh id each time', () => {
-    const a = questionFor('LO6', seeded(1))
-    const b = questionFor('LO6', seeded(1))
-    expect(a.lo).toBe('LO6')
-    expect(a.id).not.toBe(b.id)
-    expect(questionFor('LO3', seeded(2)).lo).toBe('LO3')
+  it('generates every outcome, with a fresh id each time', () => {
+    for (const lo of OUTCOME_IDS) {
+      const a = questionFor(lo, seeded(1))
+      const b = questionFor(lo, seeded(1))
+      expect(a.lo).toBe(lo)
+      expect(a.id).not.toBe(b.id)
+    }
+  })
+
+  it('gives the shape question both a chain and a balanced tree', () => {
+    const kinds = new Set(
+      Array.from({ length: 40 }, (_, seed) => GENERATORS.LO6(seeded(seed + 1)).explain.startsWith('Each key')),
+    )
+    expect(kinds).toEqual(new Set([true, false]))
   })
 
   it('builds a readiness check of two questions per outcome', () => {
@@ -140,5 +166,79 @@ describe('generated questions', () => {
       for (const lo of OUTCOME_IDS) expect(set.filter((q) => q.lo === lo)).toHaveLength(2)
       set.forEach(expectValid)
     }
+  })
+})
+
+describe('lesson figures', () => {
+  const figures = MODULES.flatMap((m) => m.sections.flatMap((s) => (s.type === 'figure' ? [s] : [])))
+
+  it('exist, so the lesson 1 vocabulary is shown and not only told', () => {
+    expect(figures.map((f) => f.title)).toEqual(['What is a tree?', 'Trees in code', 'Binary trees, depth and height'])
+  })
+
+  it.each(figures.map((f) => [f.title, f]))('%s labels only nodes that exist, and each label is true', (_, f) => {
+    for (const [key, label] of Object.entries(f.labels ?? {})) {
+      const n = findNode(f.tree, Number(key))
+      expect(n, `${f.title}: ${key}`).not.toBeNull()
+      if (label === 'root') expect(f.tree?.key).toBe(Number(key))
+      if (label === 'leaf') expect(leaves(f.tree)).toContain(Number(key))
+      if (label?.startsWith('parent of ')) {
+        expect(label).toBe(`parent of ${[n!.left?.key, n!.right?.key].filter((k) => k !== undefined).join(' and ')}`)
+      }
+    }
+  })
+
+  it('keeps the depth figure off the quick check tree, so it does not give the answer away', () => {
+    const depth = figures.find((f) => f.ruler)!
+    const quick = MODULES[0].sections.find((s) => s.type === 'try')!
+    expect(quick.type === 'try' && 'tree' in quick.question && quick.question.tree).not.toEqual(depth.tree)
+    expect(depth.caption).toContain(`Height ${height(depth.tree)}`)
+  })
+})
+
+describe('support modes', () => {
+  it('describe both modes, and guided plays more slowly', () => {
+    for (const mode of ['standard', 'guided'] as const) {
+      expect(MODES[mode].summary).not.toBe('')
+      expect(MODES[mode].features.length).toBeGreaterThan(0)
+    }
+    expect(SPEED.guided).toBeGreaterThan(SPEED.standard)
+  })
+})
+
+describe('tours', () => {
+  const ids = Object.keys(TOURS) as TourId[]
+
+  it.each(ids)('%s has text for every step in both modes', (id) => {
+    for (const mode of ['standard', 'guided'] as const) {
+      const steps = stepsFor(id, mode)
+      expect(steps.length).toBeGreaterThan(0)
+      for (const step of steps) {
+        expect(step.title.trim(), `${id}: ${step.title}`).not.toBe('')
+        expect(bodyOf(step, mode).trim(), `${id}: ${step.title}`).not.toBe('')
+      }
+    }
+  })
+
+  it.each(ids)('%s shows at least as much in guided mode as in standard', (id) => {
+    expect(stepsFor(id, 'guided').length).toBeGreaterThanOrEqual(stepsFor(id, 'standard').length)
+  })
+
+  it('describes the mode the learner is in, and the other one', () => {
+    const step = TOURS.home.steps.find((s) => s.target === 'mode')!
+    expect(bodyOf(step, 'guided')).toMatch(/^You are in guided mode\..*switch to standard mode/)
+    expect(bodyOf(step, 'standard')).toMatch(/^You are in standard mode\..*switch to guided mode/)
+  })
+})
+
+describe("Gagné's nine events", () => {
+  it.each(MODULES.map((m) => [m.id, m]))('lesson %s covers all nine, in its own content', (_, m) => {
+    expect([...lessonEvents(m)].sort()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    expect(m.recall).toBeTruthy()
+  })
+
+  it('reports the events a lesson leaves out', () => {
+    const bare = { ...MODULES[0], sections: [MODULES[0].sections[0]], quiz: [], summary: [] }
+    expect([...lessonEvents(bare)].sort()).toEqual([1, 2, 3, 4])
   })
 })

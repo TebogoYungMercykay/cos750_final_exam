@@ -28,9 +28,19 @@ interface TreeViewProps {
   onSlot?: (slot: PlacedSlot) => void
   slotState?: (slot: PlacedSlot) => 'correct' | 'wrong' | ''
   compact?: boolean
+  /** Short labels drawn above nodes, such as "root" or "45 < 50, go left". */
+  notes?: (key: number) => string | null | undefined
+  /** Labels each row with its depth, for teaching depth and height. */
+  ruler?: boolean
+  /** Draws every empty child link as a dashed null reference. */
+  nulls?: boolean
 }
 
 const PAD = 30
+const NOTE_ROOM = 26
+const RULER_ROOM = 72
+/** Average advance of a 13px sans character, used to size note pills without measuring text. */
+const NOTE_CHAR = 7.4
 
 const activate = (run: () => void) => (e: KeyboardEvent) => {
   if (e.key === 'Enter' || e.key === ' ') {
@@ -49,22 +59,33 @@ export function TreeView({
   onSlot,
   slotState,
   compact,
+  notes,
+  ruler,
+  nulls,
 }: TreeViewProps) {
-  const layout = layoutTree(tree, slots)
+  const layout = layoutTree(tree, slots || nulls)
   if (tree === null && !slots) return <p className="tree-empty">The tree is empty. Add a key to start.</p>
 
-  const gapX = slots ? 42 : compact ? 46 : 58
+  const noted = layout.nodes.flatMap(({ key }) => {
+    const text = notes?.(key)
+    return text ? [{ key, text }] : []
+  })
+  const gapX = slots || nulls ? 42 : compact ? 46 : 58
   const gapY = compact ? 64 : 76
   const r = compact ? 17 : 21
-  const width = Math.max(1, layout.columns) * gapX + PAD * 2
-  const height = layout.depth * gapY + PAD * 2
-  const x = (column: number) => PAD + column * gapX + gapX / 2
-  const y = (depth: number) => PAD + depth * gapY
+  const top = PAD + (noted.length ? NOTE_ROOM : 0)
+  const left = PAD + (ruler ? RULER_ROOM : 0)
+  const width = Math.max(1, layout.columns) * gapX + left + PAD
+  const height = layout.depth * gapY + top + PAD
+  const x = (column: number) => left + column * gapX + gapX / 2
+  const y = (depth: number) => top + depth * gapY
   const at = new Map(layout.nodes.map((n) => [n.key, n]))
   const interactive = Boolean(onNode || onSlot)
-  const description = levels(tree)
-    .map((keys, i) => `Depth ${i}: ${keys.join(', ')}.`)
-    .join(' ')
+  const description = [
+    ...levels(tree).map((keys, i) => `Depth ${i}: ${keys.join(', ')}.`),
+    ...noted.map(({ key, text }) => `${key}: ${text}.`),
+    ...(nulls ? [`${layout.slots.length} null links, drawn dashed.`] : []),
+  ].join(' ')
 
   return (
     <figure className="tree-figure">
@@ -75,6 +96,16 @@ export function TreeView({
         role={interactive ? 'group' : 'img'}
         aria-label={interactive ? label : `${label}. ${description}`}
       >
+        {ruler &&
+          Array.from({ length: layout.depth + 1 }, (_, depth) => (
+            <g key={depth} className="tree-ruler">
+              <line x1={left - 8} x2={width - PAD / 2} y1={y(depth)} y2={y(depth)} />
+              <text x={PAD / 2} y={y(depth)} dy="0.35em">
+                depth {depth}
+              </text>
+            </g>
+          ))}
+
         {layout.edges.map(({ from, to }) => {
           const a = at.get(from)!
           const b = at.get(to)!
@@ -96,6 +127,16 @@ export function TreeView({
           const cx = x(slot.column)
           const cy = y(slot.depth)
           const name = slot.parent === null ? 'Empty tree, root position' : `Empty ${slot.side} child of ${slot.parent}`
+          if (!slots) {
+            return (
+              <g key={slot.id} className="tree-null">
+                {parent && <line x1={x(parent.column)} y1={y(parent.depth)} x2={cx} y2={cy - 9} />}
+                <text x={cx} y={cy} dy="0.35em">
+                  null
+                </text>
+              </g>
+            )
+          }
           return (
             <g key={slot.id}>
               {parent && (
@@ -147,6 +188,21 @@ export function TreeView({
                   <text dy="0.35em">{n}</text>
                 </g>
               )}
+            </g>
+          )
+        })}
+
+        {noted.map(({ key, text }) => {
+          const n = at.get(key)!
+          const w = text.length * NOTE_CHAR + 16
+          const cx = Math.min(Math.max(x(n.column), w / 2 + 2), width - w / 2 - 2)
+          const cy = y(n.depth) - r - 15
+          return (
+            <g key={`note-${key}`} className="tree-note" aria-hidden="true">
+              <rect x={cx - w / 2} y={cy - 11} width={w} height={22} rx={11} />
+              <text x={cx} y={cy} dy="0.35em">
+                {text}
+              </text>
             </g>
           )
         })}

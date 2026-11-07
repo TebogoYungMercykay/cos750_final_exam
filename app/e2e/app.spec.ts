@@ -2,14 +2,16 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
 const STORAGE_KEY = 'treetutor-progress-v2'
+const ALL_TOURS = ['home', 'lesson', 'lesson-steps', 'player', 'question', 'playground']
 
-/** A learner who has finished the warm-up, so tests can start on any screen. */
+/** A learner who has finished the warm-up and seen every tour, so tests can start on any screen. */
 async function asLearner(page: Page, extra: Record<string, unknown> = {}) {
   const saved = {
     name: 'Thandi',
     mode: 'standard',
     theme: 'light',
     warmup: { score: 4, of: 4, confidence: 2 },
+    toursSeen: ALL_TOURS,
     ...extra,
   }
   await page.addInitScript(
@@ -19,6 +21,8 @@ async function asLearner(page: Page, extra: Record<string, unknown> = {}) {
     [STORAGE_KEY, JSON.stringify(saved)],
   )
 }
+
+const tour = (page: Page) => page.getByRole('dialog')
 
 const button = (page: Page, name: string | RegExp) =>
   page.getByRole('button', { name, exact: typeof name === 'string' })
@@ -45,10 +49,15 @@ test('a new learner goes from welcome through the warm-up into lesson 1', async 
   await page.getByLabel('What should we call you?').fill('Thandi')
   await button(page, 'Begin').click()
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Trees, searched step by step.')
+  await expect(tour(page)).toContainText('Getting started')
+  await button(page, 'Skip tour').click()
+  await expect(tour(page)).toBeHidden()
 
   await page.getByRole('link', { name: 'Start the warm-up' }).click()
   await button(page, 'I have used them a little').click()
   await button(page, 'Continue').click()
+  await expect(tour(page)).toContainText('Answering questions')
+  await page.keyboard.press('Escape')
   for (const answer of ['The one that was put on last', 'The person who arrived first', '6', '4']) {
     await button(page, answer).click()
     await button(page, 'Continue').click()
@@ -65,11 +74,17 @@ test('lesson 1: explore a node, then answer the quick check from the keyboard', 
   await asLearner(page)
   await page.goto('./#/lesson/m1')
   await button(page, 'Start the lesson').click()
+  await expect(page.getByRole('img', { name: /What is a tree\?.*8: root/ })).toBeVisible()
   await button(page, 'Next').click()
   await button(page, 'Node 40').click()
   await expect(page.getByText('40 is the root (no parent).')).toBeVisible()
 
   await button(page, 'Next').click()
+  await expect(
+    page.getByText('Four Node objects and 5 null links: 3.left, 6.left, 6.right, 10.left, 10.right.'),
+  ).toBeVisible()
+  await button(page, 'Next').click()
+  await expect(page.getByText('Height 3: the deepest node, 35, is 3 edges below the root.')).toBeVisible()
   await button(page, 'Next').click()
   await expect(page.getByText('Click the node with the greatest depth.')).toBeVisible()
   await button(page, 'Node 25').focus()
@@ -116,6 +131,162 @@ test('the readiness check opens with twelve questions', async ({ page }) => {
   await page.goto('./#/check')
   await button(page, 'Start').click()
   await expect(page.getByText('Question 1 of 12')).toBeVisible()
+})
+
+test('playground: the active preset is marked, and editing the tree clears it', async ({ page }) => {
+  await asLearner(page)
+  await page.goto('./#/playground')
+  const preset = (name: string) => button(page, name)
+  await expect(preset('Lecture example')).toHaveAttribute('aria-pressed', 'true')
+  await preset('Uneven').click()
+  await expect(preset('Uneven')).toHaveAttribute('aria-pressed', 'true')
+  await expect(preset('Lecture example')).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.getByText('Using the preset: Uneven.')).toBeVisible()
+  await page.getByLabel('Keys to insert').fill('99')
+  await button(page, 'Add').click()
+  await expect(page.getByText('Using your own tree.')).toBeVisible()
+  await expect(page.locator('.chip-button[aria-pressed="true"]')).toHaveCount(0)
+})
+
+test('playground: Run scrolls to the animation and focuses it', async ({ page }) => {
+  await asLearner(page)
+  await page.goto('./#/playground')
+  await button(page, 'Run').click()
+  const animation = page.getByRole('region', { name: 'Animation' })
+  await expect(animation).toBeFocused()
+  await expect(animation).toBeInViewport({ ratio: 0.5 })
+})
+
+test.describe('tours', () => {
+  test('a new learner can step through the standard tour with buttons and keys', async ({ page }) => {
+    await asLearner(page, { toursSeen: [] })
+    await page.goto('./')
+    await expect(tour(page)).toContainText('1 of 5')
+    await button(page, 'Next').click()
+    await expect(tour(page)).toContainText('The five sections')
+    await page.keyboard.press('ArrowRight')
+    await expect(tour(page)).toContainText('Your next step')
+    await page.keyboard.press('ArrowLeft')
+    await expect(tour(page)).toContainText('The five sections')
+    for (let i = 0; i < 3; i++) await button(page, 'Next').click()
+    await expect(tour(page)).toContainText('Help is always here')
+    await button(page, 'Done').click()
+    await expect(tour(page)).toBeHidden()
+    await page.reload()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Trees, searched step by step.')
+    await expect(tour(page)).toBeHidden()
+  })
+
+  test('guided mode shows the longer tour, and Help replays it', async ({ page }) => {
+    await asLearner(page, { mode: 'guided', toursSeen: [] })
+    await page.goto('./')
+    await expect(tour(page)).toContainText('1 of 9')
+    await page.keyboard.press('Escape')
+    await expect(tour(page)).toBeHidden()
+    await button(page, 'Show me around this screen').click()
+    await expect(tour(page)).toContainText('Welcome to TreeTutor')
+  })
+
+  test('the first animation explains itself, and the tour passes an accessibility scan', async ({ page }) => {
+    await asLearner(page, { toursSeen: ALL_TOURS.filter((t) => t !== 'player') })
+    await page.goto('./#/playground')
+    await button(page, 'Run').click()
+    await expect(tour(page)).toContainText('Reading an animation')
+    await expect(page.getByRole('heading', { name: 'The tree', level: 2 })).toBeFocused()
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
+    expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(' ')}`)).toEqual([])
+  })
+})
+
+test('guided mode explains every step of an animation', async ({ page }) => {
+  await asLearner(page, { mode: 'guided' })
+  await page.goto('./#/playground')
+  await button(page, 'Run').click()
+  await expect(page.locator('.narration')).toContainText('Step 1 of')
+  await expect(page.locator('.code-note')).toContainText('Line 2.')
+  await button(page, 'Next step').click()
+  await button(page, 'Next step').click()
+  await expect(page.locator('.narration')).toContainText('Why:')
+})
+
+test('a demo seed makes the readiness check repeat exactly after a reload', async ({ page }) => {
+  await asLearner(page)
+  const firstQuestion = async () => {
+    await page.goto('./?seed=42#/check')
+    await button(page, 'Start').click()
+    return page.locator('.question-prompt').textContent()
+  }
+  const once = await firstQuestion()
+  await page.reload()
+  expect(await firstQuestion()).toBe(once)
+  await expect(page.getByText('Demo seed 42: generated questions repeat.')).toBeVisible()
+})
+
+test('a review link opens the playground with its animation already running', async ({ page }) => {
+  await asLearner(page)
+  await page.goto('./#/playground/search/sorted/60')
+  await expect(button(page, 'Sorted input')).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('heading', { name: 'BST search, key 60' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Animation' })).toBeFocused()
+})
+
+test('a wrong option explains the misconception behind it', async ({ page }) => {
+  await asLearner(page)
+  await page.goto('./#/lesson/m1')
+  await expect(page.getByText('What you already know')).toBeVisible()
+  await button(page, /skip to the checkpoint/).click()
+  await button(page, 'Node 50').click()
+  await button(page, /continue/i).click()
+  await button(page, 'Node 1').click()
+  await button(page, /continue/i).click()
+  await button(page, '20').click()
+  await expect(page.locator('.feedback.is-wrong')).toHaveText(
+    'Not quite. 20 is the grandparent of 25: two edges up. The parent is the node one edge up.',
+  )
+})
+
+test('progress: text size applies to the whole page, and the lecture card can be printed', async ({ page }) => {
+  await asLearner(page, { results: { LO1: [1, 1, 1], LO3: [0.3] } })
+  await page.goto('./#/progress')
+  await page.getByRole('radio', { name: 'Larger' }).click()
+  await expect(page.getByRole('radio', { name: 'Larger' })).toHaveAttribute('aria-checked', 'true')
+  await expect(page.locator('html')).toHaveAttribute('data-text', 'larger')
+  await expect(page.locator('html')).toHaveCSS('font-size', '20px')
+  const card = page.getByRole('region', { name: 'My lecture card' })
+  await expect(card.locator('.card-list').first()).toContainText('Tree vocabulary')
+  await expect(card).toContainText('Search and insert')
+  await expect(button(page, 'Print or save as PDF')).toBeVisible()
+})
+
+test('the app never contacts another server', async ({ page, baseURL }) => {
+  const origin = new URL(baseURL!).origin
+  const elsewhere: string[] = []
+  page.on('request', (r) => {
+    if (!r.url().startsWith(origin) && !r.url().startsWith('data:')) elsewhere.push(r.url())
+  })
+  await asLearner(page)
+  for (const path of ['./', './#/lesson/m1', './#/playground', './#/practice/LO2', './#/check', './#/progress']) {
+    await page.goto(path)
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  }
+  expect(elsewhere).toEqual([])
+})
+
+test('on a phone, the tab bar sits at the bottom and leaves the header controls uncovered', async ({ page }, info) => {
+  test.skip(info.project.name !== 'mobile', 'the tab bar moves to the bottom only on small screens')
+  await asLearner(page)
+  await page.goto('./')
+  const tabs = await page.getByRole('navigation', { name: 'Main' }).boundingBox()
+  expect(Math.round(tabs!.y + tabs!.height)).toBe(page.viewportSize()!.height)
+  for (const name of ['Show me around this screen', /support mode/i]) {
+    const control = button(page, name)
+    const box = (await control.boundingBox())!
+    const hit = await page.evaluate(
+      ([x, y]) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label') ?? null,
+      [box.x + box.width / 2, box.y + box.height / 2],
+    )
+    expect(hit).toBe(await control.getAttribute('aria-label'))
+  }
 })
 
 const SCREENS = [

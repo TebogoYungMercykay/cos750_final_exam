@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Background } from './components/Background'
 import { Header, Toast } from './components/Shell'
+import { Tour } from './components/Tour'
 import { MODULE_BY_ID } from './content/modules'
 import { Home } from './screens/Home'
 import { Lesson } from './screens/Lesson'
@@ -11,6 +12,7 @@ import { Readiness } from './screens/Readiness'
 import { Warmup } from './screens/Warmup'
 import { useProgress } from './state/progress'
 import { href, useRoute, type Route } from './state/router'
+import { DEMO_SEED } from './state/rng'
 
 function Screen({ route }: { route: Route }) {
   switch (route.name) {
@@ -21,7 +23,7 @@ function Screen({ route }: { route: Route }) {
     case 'lesson':
       return <Lesson key={route.id} module={MODULE_BY_ID[route.id]} />
     case 'playground':
-      return <Playground />
+      return <Playground op={route.op} preset={route.preset} keyValue={route.key} />
     case 'practice':
       return <Practice key={route.topic ?? 'all'} topic={route.topic} />
     case 'check':
@@ -67,9 +69,11 @@ export default function App() {
         <Screen route={shown} />
       </main>
       <Toast />
+      <Tour />
       <footer className="footer">
         TreeTutor, a COS212 pre-lecture tutor prototype for COS750 Educational Software Development, University of
         Pretoria.
+        {DEMO_SEED !== null && <span className="demo-seed"> Demo seed {DEMO_SEED}: generated questions repeat.</span>}
       </footer>
     </>
   )

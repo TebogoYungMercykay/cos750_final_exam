@@ -6,11 +6,12 @@ import { MODULE_BY_ID, OUTCOMES, OUTCOME_IDS } from '../content/modules'
 import type { OutcomeId, Question } from '../content/types'
 import { useProgress } from '../state/progress'
 import { href } from '../state/router'
+import { appRng } from '../state/rng'
 import { mastery, percent } from '../state/scoring'
 
 export function Practice({ topic }: { topic?: OutcomeId }) {
   const { progress, record, solvedPractice, award } = useProgress()
-  const [question, setQuestion] = useState<Question | null>(() => (topic ? questionFor(topic, Math.random) : null))
+  const [question, setQuestion] = useState<Question | null>(() => (topic ? questionFor(topic, appRng) : null))
   const [session, setSession] = useState(0)
 
   return (
@@ -65,6 +66,7 @@ export function Practice({ topic }: { topic?: OutcomeId }) {
           <QuestionCard
             key={question.id}
             question={question}
+            reveal={session > 0}
             onDone={(answer) => {
               record(answer.lo, answer.score)
               if (answer.score > 0) {
@@ -72,7 +74,7 @@ export function Practice({ topic }: { topic?: OutcomeId }) {
                 if (progress.practiceSolved + 1 >= 10) award('practice10')
               }
               setSession((n) => n + 1)
-              setQuestion(questionFor(topic, Math.random))
+              setQuestion(questionFor(topic, appRng))
             }}
           />
         </div>

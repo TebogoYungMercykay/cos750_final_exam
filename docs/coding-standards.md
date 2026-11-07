@@ -35,20 +35,26 @@ cos750_final_exam/
         ├── engine/             # plain TypeScript, no React
         │   ├── bst.ts          # immutable tree operations and queries
         │   ├── traversal.ts    # uninformed search with a queue or stack frontier, depth first orders
-        │   ├── traces.ts       # narrated step traces and pseudocode for search, insert and traversals
+        │   ├── traces.ts       # step traces, Java code and line notes for search, insert, traversals and the frontier loop
         │   ├── layout.ts       # node and empty-slot positions for drawing
         │   └── random.ts       # seeded randomness and random trees
         ├── content/            # lessons and questions as data
         │   ├── modules.tsx     # learning outcomes and the six lessons
         │   ├── assessment.ts   # warm-up, question bank, generators, readiness set
         │   ├── badges.ts
+        │   ├── gagne.ts        # the Gagné event each section plays, and which events a lesson covers
+        │   ├── modes.ts        # what standard and guided mode change, the one description of each
+        │   ├── playground.ts   # presets, operations, and the animation each outcome is reviewed with
+        │   ├── tours.ts        # the guided tours, per screen and per mode
         │   └── types.ts
         ├── state/
         │   ├── progress.ts     # saved progress, its types and the useProgress hook
         │   ├── ProgressProvider.tsx
         │   ├── scoring.ts      # credit, mastery and the readiness threshold
-        │   └── router.ts       # hash routes
-        ├── components/         # tree view, step players, question card, lesson parts, shell, background
+        │   ├── rng.ts          # randomness for generated questions; ?seed=42 makes a demo repeat
+        │   ├── router.ts       # hash routes
+        │   └── tour.ts         # which tour is showing, and which are waiting
+        ├── components/         # tree view, step player, question card, lesson parts, tour, shell, background; reveal.ts
         ├── screens/            # one file per screen
         ├── styles.css          # design tokens and every style
         └── test/setup.ts
@@ -113,10 +119,11 @@ The same rule applies to the content of commit messages in reverse: they describ
 1. **The engine is the single source of truth.** Animations, generated questions and marking all call the engine. Never hand-type an answer the engine can compute.
 2. **Trees are immutable.** Every operation returns a new tree and leaves its input untouched; an insert of an existing key returns the same object.
 3. **Authored content must agree with the engine.** Every question passes the content tests: answers exist in their trees, a "valid BST?" answer matches `firstViolation`, and any traversal written out in an explanation equals `traversalOrder`. Fix the content, never the test.
-4. **Every outcome stays aligned.** Each learning outcome has one lesson with a guided try, a reflection, takeaways and a checkpoint of at least four questions, plus bank items for the readiness check.
-5. **Randomness is injected.** Anything random takes an `Rng` argument. Tests pass `seeded(n)` so every failure can be replayed.
+4. **Every outcome stays aligned.** Each learning outcome has one lesson with a guided try, a reflection, takeaways and a checkpoint of at least four questions, plus bank items and a generator for the readiness check. Every question carries a Bloom level, and it must be one of its outcome's levels. Every wrong multiple choice option has feedback aimed at the misconception behind it. Every lesson covers all nine of Gagné's events, including a recall of prior learning and a worked example. The content tests enforce all of this.
+5. **Randomness is injected.** Anything random takes an `Rng` argument. Tests pass `seeded(n)` so every failure can be replayed, and screens pass `appRng`, so `?seed=42` in the address makes every generated question repeat for a demonstration.
 6. **Scoring lives in one place.** Credit per attempt, the 10-answer mastery window and the 70% readiness threshold are constants in `state/scoring.ts`, never literals in a screen.
-7. **Nothing leaves the browser.** No server calls and no analytics. Every `localStorage` access is guarded, so the app still works when storage is blocked.
+7. **The code on screen is the code that runs.** Every animation step points at the line of Java that produces it, never the signature. A step that changes something carries a reason; a check that changes nothing is marked `detail`, so standard mode can skip it without losing state. The engine tests enforce all three.
+8. **Nothing leaves the browser.** No server calls and no analytics. Every `localStorage` access is guarded, so the app still works when storage is blocked.
 
 ## Tests
 
@@ -134,6 +141,10 @@ The same rule applies to the content of commit messages in reverse: they describ
 - Icons come from Lucide. No emoji, sticker graphics or jokes in the copy.
 - Every interactive element works from the keyboard, has an accessible name and a visible focus ring. Changes the learner should hear are announced through a live region.
 - Motion respects `prefers-reduced-motion`, and the background animation pauses when the tab is hidden.
+- The active choice in any group of choices looks like its hover state: accent text and an accent border, with no tick icon and no change of background. The state is also set as `aria-pressed`, `aria-checked` or a checked radio.
+- When an action puts its result below the fold, the result scrolls into view and takes focus. Use `reveal()` from `components/reveal.ts` rather than scrolling by hand.
+- What each support mode changes is described once, in `content/modes.ts`. Never describe a mode anywhere else.
+- A new screen, or a new component with controls of its own, gets a tour in `content/tours.ts`, written for both modes, and a `TourLauncher`. Tour targets are `data-tour` attributes.
 - Fonts are installed packages, not links to a font service, so the app works offline.
 
 ## Git, branches and commits

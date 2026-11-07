@@ -4,11 +4,15 @@ import type { ModuleId, OutcomeId } from '../content/types'
 
 export type Mode = 'standard' | 'guided'
 export type Theme = 'light' | 'dark'
+export type TextSize = 'normal' | 'large' | 'larger'
 
 export interface Progress {
   name: string
   mode: Mode
   theme: Theme
+  textSize: TextSize
+  /** Read each animation step aloud with the browser's speech synthesis. */
+  narrate: boolean
   warmup: { score: number; of: number; confidence: number } | null
   modules: Partial<Record<ModuleId, { attempts: number; best: number }>>
   results: Partial<Record<OutcomeId, number[]>>
@@ -17,6 +21,8 @@ export interface Progress {
   practiceSolved: number
   assessments: { at: number; overall: number; perOutcome: Partial<Record<OutcomeId, number>> }[]
   reflections: Record<string, string>
+  /** Tours the learner has finished or skipped. */
+  toursSeen: string[]
 }
 
 export const STORAGE_KEY = 'treetutor-progress-v2'
@@ -25,6 +31,8 @@ export const fresh = (): Progress => ({
   name: '',
   mode: 'standard',
   theme: 'light',
+  textSize: 'normal',
+  narrate: false,
   warmup: null,
   modules: {},
   results: {},
@@ -33,6 +41,7 @@ export const fresh = (): Progress => ({
   practiceSolved: 0,
   assessments: [],
   reflections: {},
+  toursSeen: [],
 })
 
 /** Storage can be missing or blocked (private windows, previews), so every access is guarded. */
@@ -54,6 +63,7 @@ export interface Store {
   addAssessment: (entry: Progress['assessments'][number]) => void
   solvedPractice: () => void
   award: (id: BadgeId) => void
+  markTourSeen: (id: string) => void
   reset: () => void
   toast: BadgeId | null
   dismissToast: () => void

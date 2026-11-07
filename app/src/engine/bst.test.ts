@@ -1,6 +1,6 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { childCount, fromKeys, insert, isBst, leaves, levelCount, node, searchPath, size } from './bst'
+import { childCount, fromKeys, insert, isBst, leaves, levelCount, node, nullLinks, searchPath, size } from './bst'
 
 const uniqueKeys = fc.uniqueArray(fc.integer({ min: -999, max: 999 }), { maxLength: 40 })
 
@@ -60,6 +60,19 @@ describe('levelCount', () => {
 
   it('stays small when keys arrive in a balancing order', () => {
     expect(levelCount(fromKeys([4, 2, 6, 1, 3, 5, 7]))).toBe(3)
+  })
+})
+
+describe('nullLinks', () => {
+  it('names every empty child link, left to right as drawn', () => {
+    expect(nullLinks(fromKeys([8, 3, 10, 6]))).toEqual(['3.left', '6.left', '6.right', '10.left', '10.right'])
+    expect(nullLinks(null)).toEqual([])
+  })
+
+  it('finds one more null link than there are nodes', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => nullLinks(fromKeys(keys)).length === (keys.length ? keys.length + 1 : 0)),
+    )
   })
 })
 
