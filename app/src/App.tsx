@@ -51,6 +51,8 @@ export default function App() {
     const main = mainRef.current
     // A screen that moved focus to something of its own as it opened, such as an animation it started, keeps it.
     if (main?.contains(document.activeElement) && document.activeElement !== main) return
+    // The tour moves between pages itself and keeps focus on its own card.
+    if (document.activeElement?.closest('.tour')) return
     window.scrollTo({ top: 0 })
     main?.focus({ preventScroll: true })
   }, [path])

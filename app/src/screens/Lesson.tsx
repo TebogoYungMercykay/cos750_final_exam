@@ -13,7 +13,6 @@ import { FrontierPlayer } from '../components/FrontierPlayer'
 import { Explorer, Reflect } from '../components/LessonParts'
 import { QuestionCard, Quiz } from '../components/QuestionCard'
 import { StepPlayer } from '../components/StepPlayer'
-import { TourLauncher } from '../components/TourLauncher'
 import { TreeView } from '../components/TreeView'
 import { MODULES, OUTCOMES, PARTS } from '../content/modules'
 import type { Module, Section } from '../content/types'
@@ -140,7 +139,6 @@ export function Lesson({ module: m }: { module: Module }) {
 
       {phase === 'intro' && (
         <div className="card rise">
-          <TourLauncher id="lesson" />
           <div className="prose hook">{m.hook}</div>
           <div className="callout recall">
             <strong>What you already know</strong>
@@ -170,7 +168,6 @@ export function Lesson({ module: m }: { module: Module }) {
 
       {phase === 'learn' && (
         <div className="lesson-grid">
-          <TourLauncher id="lesson-steps" />
           <nav className="outline" aria-label="Lesson steps" data-tour="lesson-outline">
             <ol>
               {m.sections.map((s, i) => (

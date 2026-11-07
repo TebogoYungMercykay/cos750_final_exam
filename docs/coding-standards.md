@@ -48,7 +48,7 @@ cos750_final_exam/
         │   ├── gagne.ts        # the Gagné event each section plays, and which events a lesson covers
         │   ├── modes.ts        # what standard and guided mode change, the one description of each
         │   ├── playground.ts   # presets, operations, and the animation each outcome is reviewed with
-        │   ├── tours.ts        # the guided tours, per screen and per mode
+        │   ├── tours.ts        # the one tour of the app, page by page
         │   └── types.ts
         ├── state/
         │   ├── progress.ts     # saved progress, its types and the useProgress hook
@@ -56,7 +56,7 @@ cos750_final_exam/
         │   ├── scoring.ts      # credit, mastery and the readiness threshold
         │   ├── rng.ts          # randomness for generated questions; ?seed=42 makes a demo repeat
         │   ├── router.ts       # hash routes
-        │   └── tour.ts         # which tour is showing, and which are waiting
+        │   └── tour.ts         # whether the tour is showing
         ├── components/         # tree view, step player, question card, lesson parts, tour, shell, background, lightning tree; reveal.ts, lightning.ts
         ├── screens/            # one file per screen
         ├── styles.css          # design tokens and every style
@@ -147,7 +147,7 @@ The same rule applies to the content of commit messages in reverse: they describ
 - The active choice in any group of choices looks like its hover state: accent text and an accent border, with no tick icon and no change of background. The state is also set as `aria-pressed`, `aria-checked` or a checked radio.
 - When an action puts its result below the fold, the result scrolls into view and takes focus. Use `reveal()` from `components/reveal.ts` rather than scrolling by hand.
 - What each support mode changes is described once, in `content/modes.ts`. Never describe a mode anywhere else.
-- A new screen, or a new component with controls of its own, gets a tour in `content/tours.ts`, written for both modes, and a `TourLauncher`. Tour targets are `data-tour` attributes.
+- The app has one tour, in `content/tours.ts`. It starts once, for a new learner, and after that only from Help; it always ends on the home page. A new screen adds at most one short step to it, and every card stays within `MAX_BODY` characters. Tour targets are `data-tour` attributes.
 - Fonts are installed packages, not links to a font service, so the app works offline.
 
 ## Git, branches and commits

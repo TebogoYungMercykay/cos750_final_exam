@@ -144,7 +144,7 @@ export function ProgressPage() {
           </ul>
         </section>
 
-        <section className="card lecture-card progress-notes" aria-labelledby="card-title">
+        <section className="card lecture-card progress-notes" aria-labelledby="card-title" data-tour="progress-card">
           <h2 id="card-title" className="display-4">
             My lecture card
           </h2>

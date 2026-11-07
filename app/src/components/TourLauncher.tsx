@@ -1,16 +1,12 @@
 import { useEffect } from 'react'
-import type { TourId } from '../content/tours'
 import { useProgress } from '../state/progress'
 import { tours } from '../state/tour'
 
-/** Makes a tour available to Help while mounted, and starts it the first time the learner gets here. */
-export function TourLauncher({ id }: { id: TourId }) {
+/** Starts the tour for a learner who has neither finished nor skipped it; after that only Help starts it. */
+export function TourLauncher() {
   const { progress } = useProgress()
-  const seen = progress.toursSeen.includes(id)
   useEffect(() => {
-    tours.register(id)
-    if (!seen) tours.request(id)
-    return () => tours.unregister(id)
-  }, [id, seen])
+    if (!progress.tourDone) tours.start()
+  }, [progress.tourDone])
   return null
 }

@@ -21,8 +21,8 @@ export interface Progress {
   practiceSolved: number
   assessments: { at: number; overall: number; perOutcome: Partial<Record<OutcomeId, number>> }[]
   reflections: Record<string, string>
-  /** Tours the learner has finished or skipped. */
-  toursSeen: string[]
+  /** The learner has finished or skipped the tour, so it never starts on its own again. */
+  tourDone: boolean
 }
 
 export const STORAGE_KEY = 'treetutor-progress-v2'
@@ -41,14 +41,17 @@ export const fresh = (): Progress => ({
   practiceSolved: 0,
   assessments: [],
   reflections: {},
-  toursSeen: [],
+  tourDone: false,
 })
 
 /** Storage can be missing or blocked (private windows, previews), so every access is guarded. */
 export function load(): Progress {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    return saved ? { ...fresh(), ...JSON.parse(saved) } : fresh()
+    if (!saved) return fresh()
+    const { toursSeen, ...rest } = JSON.parse(saved)
+    const sawOldTours = Array.isArray(toursSeen) && toursSeen.length > 0
+    return { ...fresh(), ...(sawOldTours && { tourDone: true }), ...rest }
   } catch {
     return fresh()
   }
@@ -63,7 +66,6 @@ export interface Store {
   addAssessment: (entry: Progress['assessments'][number]) => void
   solvedPractice: () => void
   award: (id: BadgeId) => void
-  markTourSeen: (id: string) => void
   reset: () => void
   toast: BadgeId | null
   dismissToast: () => void

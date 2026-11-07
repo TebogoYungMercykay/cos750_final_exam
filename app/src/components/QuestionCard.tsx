@@ -7,7 +7,6 @@ import type { Answer, Question } from '../content/types'
 import { useProgress } from '../state/progress'
 import { credit } from '../state/scoring'
 import { reveal } from './reveal'
-import { TourLauncher } from './TourLauncher'
 import { TreeView, type NodeState } from './TreeView'
 
 type Status = 'open' | 'solved' | 'revealed'
@@ -130,7 +129,6 @@ export function QuestionCard({ question: q, index = 0, total = 1, reveal: should
 
   return (
     <div className="question">
-      <TourLauncher id="question" />
       {total > 1 && (
         <p className="question-count">
           Question {index + 1} of {total}

@@ -16,7 +16,8 @@ import { BANK, GENERATORS, needsGuidance, questionFor, readinessSet, WARMUP } fr
 import { BADGES } from './badges'
 import { MODES, SPEED } from './modes'
 import { MODULES, OUTCOMES, OUTCOME_IDS } from './modules'
-import { bodyOf, stepsFor, TOURS, type TourId } from './tours'
+import { bodyOf, MAX_BODY, TOUR } from './tours'
+import { href, parseRoute } from '../state/router'
 import { lessonEvents } from './gagne'
 import { BLOOM, type Question } from './types'
 
@@ -264,28 +265,28 @@ describe('support modes', () => {
   })
 })
 
-describe('tours', () => {
-  const ids = Object.keys(TOURS) as TourId[]
-
-  it.each(ids)('%s has text for every step in both modes', (id) => {
+describe('the tour', () => {
+  it('keeps every card short, in both modes', () => {
     for (const mode of ['standard', 'guided'] as const) {
-      const steps = stepsFor(id, mode)
-      expect(steps.length).toBeGreaterThan(0)
-      for (const step of steps) {
-        expect(step.title.trim(), `${id}: ${step.title}`).not.toBe('')
-        expect(bodyOf(step, mode).trim(), `${id}: ${step.title}`).not.toBe('')
+      for (const step of TOUR) {
+        expect(step.title.trim(), step.title).not.toBe('')
+        expect(bodyOf(step, mode).length, step.title).toBeLessThanOrEqual(MAX_BODY)
       }
     }
   })
 
-  it.each(ids)('%s shows at least as much in guided mode as in standard', (id) => {
-    expect(stepsFor(id, 'guided').length).toBeGreaterThanOrEqual(stepsFor(id, 'standard').length)
+  it('visits real pages, starts and ends on the home page, and covers every main section', () => {
+    for (const step of TOUR) expect(parseRoute(href(step.route)), step.title).toEqual(step.route)
+    expect(TOUR[0].route).toEqual({ name: 'home' })
+    expect(TOUR.at(-1)!.route).toEqual({ name: 'home' })
+    const pages = new Set(TOUR.map((s) => s.route.name))
+    expect([...pages].sort()).toEqual(['check', 'home', 'lesson', 'playground', 'practice', 'progress'])
   })
 
-  it('describes the mode the learner is in, and the other one', () => {
-    const step = TOURS.home.steps.find((s) => s.target === 'mode')!
-    expect(bodyOf(step, 'guided')).toMatch(/^You are in guided mode\..*switch to standard mode/)
-    expect(bodyOf(step, 'standard')).toMatch(/^You are in standard mode\..*switch to guided mode/)
+  it('describes the mode the learner is in', () => {
+    const step = TOUR.find((s) => s.target === 'mode')!
+    expect(bodyOf(step, 'guided')).toMatch(/^Guided mode/)
+    expect(bodyOf(step, 'standard')).toMatch(/^Standard mode/)
   })
 })
 
