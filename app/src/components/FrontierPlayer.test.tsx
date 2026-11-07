@@ -21,7 +21,7 @@ const narration = () => document.querySelector('.narration')!
 function setup() {
   render(
     <ProgressProvider>
-      <FrontierPlayer tree={tree} />
+      <FrontierPlayer tree={tree} keyValue={99} />
     </ProgressProvider>,
   )
   return { user: userEvent.setup(), next: screen.getByRole('button', { name: 'Next step' }) }
@@ -32,13 +32,13 @@ afterEach(() => localStorage.clear())
 describe('FrontierPlayer', () => {
   it('opens on the start state with only the root waiting', () => {
     setup()
-    expect(narration()).toHaveTextContent('Start: add the root (50) to the queue.')
+    expect(narration()).toHaveTextContent('Start: search for 99. Add the root (50) to the queue.')
     expect(listed(/queue/i)).toEqual(['50'])
     expect(listed(/visit order/i)).toEqual([])
     expect(screen.getByRole('button', { name: 'Previous step' })).toBeDisabled()
   })
 
-  it('takes a node out, visits it, then adds its children, each as its own step', async () => {
+  it('takes a node out, checks it, then adds its children, each as its own step', async () => {
     const { user, next } = setup()
     await user.click(next)
     expect(narration()).toHaveTextContent('Take 50 from the front of the queue.')
@@ -73,7 +73,7 @@ describe('FrontierPlayer', () => {
     const { user, next } = setup()
     while (!(next as HTMLButtonElement).disabled) await user.click(next)
     expect(narration()).toHaveTextContent(
-      'The queue is empty, so the loop stops. Visit order: 50, 30, 70, 20, 40, 60, 80, 45, 65.',
+      'The queue is empty: 99 is not in the tree. Every node was checked, in this order: 50, 30, 70, 20, 40, 60, 80, 45, 65.',
     )
     await user.click(screen.getByRole('button', { name: 'Restart' }))
     expect(listed(/visit order/i)).toEqual([])

@@ -1,6 +1,6 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { fromKeys, insert, insertSlot, levelCount, searchPath } from './bst'
+import { fromKeys, height, insert, insertSlot, searchPath } from './bst'
 import {
   CODE_NOTES,
   frontierTrace,
@@ -27,7 +27,7 @@ function traceOf(kind: TraceKind, keys: number[], key: number): TraceStep[] {
   const tree = fromKeys(keys)
   if (kind === 'search') return searchTrace(tree, key)
   if (kind === 'insert') return insertTrace(tree, key).steps
-  if (kind === 'bfs' || kind === 'dfs') return frontierTrace(tree, kind)
+  if (kind === 'bfs' || kind === 'dfs') return frontierTrace(tree, kind, key)
   return traversalTrace(tree, kind)
 }
 
@@ -69,7 +69,7 @@ describe('traversal traces', () => {
       fc.property(uniqueKeys, fc.constantFrom<TraversalKind>('pre', 'in', 'post'), (keys, kind) => {
         const tree = fromKeys(keys)
         const steps = traversalTrace(tree, kind)
-        return Math.max(...steps.map((s) => s.stack.length)) === levelCount(tree) && steps.at(-1)!.stack.length === 0
+        return Math.max(...steps.map((s) => s.stack.length)) === height(tree) && steps.at(-1)!.stack.length === 0
       }),
     )
   })
@@ -91,49 +91,64 @@ describe('traversal traces', () => {
 
 describe('frontierTrace', () => {
   const sample = fromKeys([50, 30, 70, 20, 40, 60, 80, 45, 65])
+  const ABSENT = 1000
 
   it('starts with only the root waiting', () => {
-    expect(frontierTrace(sample, 'bfs')[0]).toMatchObject({ queue: [50], output: [] })
+    expect(frontierTrace(sample, 'bfs', ABSENT)[0]).toMatchObject({ queue: [50], output: [] })
   })
 
   it('lists waiting nodes next one out first, whichever frontier is used', () => {
-    const after = (kind: 'bfs' | 'dfs') => frontierTrace(sample, kind).find((s) => s.current === 30 && s.line === 5)!
+    const after = (kind: 'bfs' | 'dfs') =>
+      frontierTrace(sample, kind, ABSENT).find((s) => s.current === 30 && s.line === 5)!
     expect(after('bfs').queue).toEqual([70, 20, 40])
     expect(after('dfs').queue).toEqual([20, 40, 70])
   })
 
-  it('visits every node exactly once and ends with nothing waiting', () => {
-    fc.assert(
-      fc.property(uniqueKeys, fc.constantFrom<'bfs' | 'dfs'>('bfs', 'dfs'), (keys, kind) => {
-        const last = frontierTrace(fromKeys(keys), kind).at(-1)!
-        return last.done === true && new Set(last.output).size === keys.length && last.queue.length === 0
-      }),
-    )
-  })
-
-  it('walks breadth first like level-order and depth first like pre-order', () => {
+  it('checks every node, in level-order or pre-order, when the key is not in the tree', () => {
     fc.assert(
       fc.property(uniqueKeys, (keys) => {
         const tree = fromKeys(keys)
-        expect(frontierTrace(tree, 'bfs').at(-1)!.output).toEqual(traversalOrder(tree, 'level'))
-        expect(frontierTrace(tree, 'dfs').at(-1)!.output).toEqual(traversalOrder(tree, 'pre'))
+        const bfs = frontierTrace(tree, 'bfs', ABSENT).at(-1)!
+        const dfs = frontierTrace(tree, 'dfs', ABSENT).at(-1)!
+        expect(bfs).toMatchObject({ done: true, found: false, queue: [] })
+        expect(bfs.output).toEqual(traversalOrder(tree, 'level'))
+        expect(dfs.output).toEqual(traversalOrder(tree, 'pre'))
       }),
     )
   })
 
-  it('lists waiting nodes next one out first and says how each frontier adds children', () => {
-    const stack = frontierTrace(fromKeys([2, 1, 3]), 'dfs')
-    expect(stack[0].text).toBe('Start: add the root (2) to the stack.')
-    expect(stack[3].text).toBe("Push 2's children, right 3 first, then left 1, so 1 is on top. Stack: 1, 3.")
-    const queue = frontierTrace(fromKeys([2, 1, 3]), 'bfs')
-    expect(queue[3].text).toBe("Add 2's children to the back of the queue, left 1 then right 3. Queue: 1, 3.")
-    expect(frontierTrace(fromKeys([2, 1]), 'bfs')[3].text).toBe("Add 2's only child, 1, to the queue. Queue: 1.")
-    expect(frontierTrace(fromKeys([2, 1]), 'dfs')[3].why).toBe('1 goes on top of the stack, so it comes out next.')
-    expect(queue.some((s) => s.text === '1 is a leaf, so no children are added. Queue: 3.')).toBe(true)
+  it('stops at the key, having checked exactly the walk order up to it', () => {
+    fc.assert(
+      fc.property(uniqueKeys, fc.constantFrom<'bfs' | 'dfs'>('bfs', 'dfs'), fc.nat(), (keys, kind, pick) => {
+        const tree = fromKeys(keys)
+        const key = keys[pick % keys.length]
+        const last = frontierTrace(tree, kind, key).at(-1)!
+        const walk = traversalOrder(tree, kind === 'bfs' ? 'level' : 'pre')
+        return last.found === true && last.output.join() === walk.slice(0, walk.indexOf(key) + 1).join()
+      }),
+    )
   })
 
-  it('says there is nothing to visit in an empty tree', () => {
-    expect(frontierTrace(null, 'dfs')).toEqual([expect.objectContaining({ done: true, output: [] })])
+  it('narrates the search and says how each frontier adds children', () => {
+    const stack = frontierTrace(fromKeys([2, 1, 3]), 'dfs', ABSENT)
+    expect(stack[0].text).toBe('Start: search for 1000. Add the root (2) to the stack.')
+    expect(stack[2].text).toBe('Check 2: it is not 1000. Checked so far: 2.')
+    expect(stack[3].text).toBe("Push 2's children, right 3 first, then left 1, so 1 is on top. Stack: 1, 3.")
+    const queue = frontierTrace(fromKeys([2, 1, 3]), 'bfs', ABSENT)
+    expect(queue[3].text).toBe("Add 2's children to the back of the queue, left 1 then right 3. Queue: 1, 3.")
+    expect(frontierTrace(fromKeys([2, 1]), 'bfs', ABSENT)[3].text).toBe(
+      "Add 2's only child, 1, to the queue. Queue: 1.",
+    )
+    expect(frontierTrace(fromKeys([2, 1]), 'dfs', ABSENT)[3].why).toBe(
+      '1 goes on top of the stack, so it comes out next.',
+    )
+    expect(queue.some((s) => s.text === '1 is a leaf, so no children are added. Queue: 3.')).toBe(true)
+    expect(frontierTrace(fromKeys([2, 1, 3]), 'bfs', 3).at(-1)!.text).toBe('3 == 3: found after checking 3 nodes.')
+    expect(frontierTrace(fromKeys([2]), 'bfs', 2).at(-1)!.text).toBe('2 == 2: found after checking 1 node.')
+  })
+
+  it('says the key is not found in an empty tree', () => {
+    expect(frontierTrace(null, 'dfs', 5)).toEqual([expect.objectContaining({ done: true, found: false, output: [] })])
   })
 })
 

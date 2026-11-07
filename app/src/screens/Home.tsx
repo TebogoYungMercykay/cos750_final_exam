@@ -1,33 +1,37 @@
 import { ArrowRight, ChartColumn, Check, Dumbbell, FlaskConical, GraduationCap } from 'lucide-react'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { BADGES } from '../content/badges'
-import { MODULES, OUTCOMES, OUTCOME_IDS, TREES } from '../content/modules'
+import { MODULES, OUTCOMES, OUTCOME_IDS, PARTS, TREES } from '../content/modules'
+import type { Part } from '../content/types'
 import { TourLauncher } from '../components/TourLauncher'
 import { TreeView } from '../components/TreeView'
 import { useProgress } from '../state/progress'
 import { href } from '../state/router'
 import { mastery, percent } from '../state/scoring'
 
-/** Sections are labelled by tree depth: the page itself reads like a walk down a tree. */
+/** Sections are labelled by tree level, the hero being the root on level 1: the page reads like a walk down a tree. */
 export function SectionHead({
-  depth,
+  level,
   kicker,
   title,
   lede,
+  children,
 }: {
-  depth: number
+  level: number
   kicker: string
   title: ReactNode
   lede?: string
+  children?: ReactNode
 }) {
   return (
     <div className="section-head">
       <p className="eyebrow">
-        <span className="depth-tag">depth {depth}</span>
+        <span className="depth-tag">level {level}</span>
         {kicker}
       </p>
       <h2 className="display-2">{title}</h2>
       {lede && <p className="lede">{lede}</p>}
+      {children}
     </div>
   )
 }
@@ -41,17 +45,17 @@ function Welcome() {
     <section className="hero hero-split">
       <div className="hero-copy rise">
         <p className="eyebrow">
-          <span className="depth-tag">COS212</span>
+          <span className="depth-tag">COS212 app</span>
           Pre-lecture tutor
         </p>
         <h1 className="display">
           Binary search trees, <em>before</em> the lecture.
         </h1>
         <p className="lede">
-          Your personal tutor for <strong>binary search trees</strong> and <strong>tree traversals</strong>. You can
-          read Java and know classes and references; no knowledge of trees is needed. In about an hour of short lessons
-          you will see every idea run step by step beside its Java code, and practise until you feel ready for the
-          lecture.
+          The COS212 app teaches one data structure, the <strong>binary search tree</strong>, and one algorithm,{' '}
+          <strong>tree search</strong>: finding a key depth first or breadth first. You can read Java and know classes
+          and references; no knowledge of trees is needed. In about an hour of short lessons you will see every idea run
+          step by step beside its Java code, and practise until you feel ready for the lecture.
         </p>
         <form
           className="name-form"
@@ -146,7 +150,7 @@ export function Home() {
       <section className="hero">
         <div className="hero-copy rise">
           <p className="eyebrow">
-            <span className="depth-tag">COS212</span>
+            <span className="depth-tag">COS212 app</span>
             Welcome back, {progress.name}
           </p>
           <h1 className="display">
@@ -191,15 +195,27 @@ export function Home() {
 
       <section className="section section-split">
         <SectionHead
-          depth={1}
+          level={2}
           kicker="The path"
           title={
             <>
               Six short <em>lessons</em>
             </>
           }
-          lede="Walk them in order, the way a traversal visits nodes. Each one opens with a familiar idea, shows worked examples, lets you try, and ends with a short checkpoint."
-        />
+          lede="One data structure and one algorithm. Walk the lessons in order, the way a traversal visits nodes: each opens with a familiar idea, shows worked examples, lets you try, and ends with a short checkpoint."
+        >
+          <dl className="parts">
+            {(Object.keys(PARTS) as Part[]).map((part) => (
+              <div key={part} className={`part is-${part}`}>
+                <dt>{PARTS[part].name}</dt>
+                <dd>
+                  <strong>{PARTS[part].topic}</strong>
+                  <span className="muted">{PARTS[part].lessons}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </SectionHead>
         <ol className="path" data-tour="path">
           {MODULES.map((m, i) => {
             const Icon = m.icon
@@ -221,7 +237,7 @@ export function Home() {
                   </span>
                   <span className="path-body">
                     <span className="path-kicker">
-                      lesson {i + 1}
+                      lesson {i + 1}, {PARTS[m.part].name.toLowerCase()}
                       {finished && <span className="visually-hidden">, finished</span>}
                     </span>
                     <span className="path-title">{m.title}</span>
@@ -251,7 +267,7 @@ export function Home() {
 
       <section className="section">
         <SectionHead
-          depth={2}
+          level={3}
           kicker="Tools"
           title={
             <>

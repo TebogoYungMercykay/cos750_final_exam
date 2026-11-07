@@ -32,15 +32,21 @@ const recursive = (name: string, body: string[]) => [
   '}',
 ]
 
-/** One loop for both walks: `frontier` is any class implementing FRONTIER_INTERFACE. */
+/**
+ * Uninformed tree search: one loop for both walks, where `frontier` is any
+ * class implementing FRONTIER_INTERFACE. It checks nodes in the order the
+ * frontier hands them out and never uses the BST rule. Searching for a key
+ * that is not there visits every node, which is a traversal.
+ */
 const FRONTIER_LOOP = [
-  'void search(Node root, Frontier frontier) {',
+  'Node search(Node root, int key, Frontier frontier) {',
   '  frontier.add(root);',
   '  while (!frontier.isEmpty()) {',
   '    Node node = frontier.remove();',
-  '    visit(node);',
+  '    if (node.key == key) return node;',
   '    frontier.addChildren(node);',
   '  }',
+  '  return null;',
   '}',
 ]
 
@@ -114,10 +120,11 @@ const frontierNotes = (name: string, out: string, add: string) => [
   `The root is the only node known at the start, so it goes into the ${name}.`,
   `Keep going while any node is still waiting in the ${name}.`,
   `Take the next node out. A ${name} gives back ${out}.`,
-  'Visit the node: here, that means print its key.',
+  'Check the node. Uninformed search cannot tell where the key is, so it checks nodes one by one.',
   add,
   'End of one round of the loop.',
-  `The ${name} is empty: every node has been visited.`,
+  `The ${name} is empty and nothing matched: the key is not in the tree, and every node was checked.`,
+  CLOSE,
 ]
 
 /**
@@ -344,7 +351,7 @@ export function traversalTrace(root: Tree, kind: TraversalKind): TraceStep[] {
  * the queue or the stack alone decides whether the walk is breadth first or
  * depth first.
  */
-export function frontierTrace(root: Tree, kind: FrontierTraceKind): TraceStep[] {
+export function frontierTrace(root: Tree, kind: FrontierTraceKind, key: number): TraceStep[] {
   const fk = FRONTIER_OF[kind]
   const frontier = makeFrontier(fk)
   const steps: TraceStep[] = []
@@ -353,12 +360,12 @@ export function frontierTrace(root: Tree, kind: FrontierTraceKind): TraceStep[] 
     steps.push({ ...blank, current, line, text, output: [...output], queue: frontier.keys(), ...extra })
 
   if (root === null) {
-    record(null, 2, 'The tree is empty, so there is nothing to visit.', { done: true })
+    record(null, 7, `The tree is empty, so ${key} is not found.`, { done: true, found: false })
     return steps
   }
   frontier.addChildren([root])
-  record(null, 1, `Start: add the root (${root.key}) to the ${fk}.`, {
-    why: 'The frontier holds nodes that are found but not yet visited. At the start only the root is known.',
+  record(null, 1, `Start: search for ${key}. Add the root (${root.key}) to the ${fk}.`, {
+    why: 'The frontier holds nodes that are found but not yet checked. At the start only the root is known.',
   })
   while (!frontier.isEmpty()) {
     const n = frontier.remove()
@@ -370,9 +377,22 @@ export function frontierTrace(root: Tree, kind: FrontierTraceKind): TraceStep[] 
           : `A stack is last in, first out: ${n.key} was added most recently.`,
     })
     output.push(n.key)
-    record(n.key, 4, `Visit ${n.key}. Visit order so far: ${output.join(', ')}.`, {
-      note: `visit ${output.length}`,
-      why: `Nodes are visited in the order they leave the ${fk}, so the ${fk} alone decides the order.`,
+    if (n.key === key) {
+      const s = output.length > 1 ? 's' : ''
+      record(n.key, 4, `${n.key} == ${key}: found after checking ${output.length} node${s}.`, {
+        note: 'found',
+        why: `Tree search does not use the BST rule, so it checked nodes in the order the ${fk} gave them until one matched.`,
+        done: true,
+        found: true,
+      })
+      return steps
+    }
+    record(n.key, 4, `Check ${n.key}: it is not ${key}. Checked so far: ${output.join(', ')}.`, {
+      note: `${n.key} ≠ ${key}`,
+      why:
+        output.length === 1
+          ? 'Uninformed search does not use the BST rule, so it cannot skip a subtree. It checks every node it reaches.'
+          : `Nodes are checked in the order they leave the ${fk}, so the ${fk} alone decides the order.`,
     })
     const children = [n.left, n.right].filter((c) => c !== null)
     frontier.addChildren(children)
@@ -395,7 +415,7 @@ export function frontierTrace(root: Tree, kind: FrontierTraceKind): TraceStep[] 
         `Add ${n.key}'s children to the back of the queue, left ${l.key} then right ${r.key}. ${waiting}`,
         {
           note: `add ${l.key}, ${r.key}`,
-          why: 'Children wait behind every node already in the queue, so the walk finishes a level before it starts the next.',
+          why: 'Children wait behind every node already in the queue, so the search finishes a level before it starts the next.',
         },
       )
     } else {
@@ -406,12 +426,17 @@ export function frontierTrace(root: Tree, kind: FrontierTraceKind): TraceStep[] 
         `Push ${n.key}'s children, right ${r.key} first, then left ${l.key}, so ${l.key} is on top. ${waiting}`,
         {
           note: `push ${r.key}, ${l.key}`,
-          why: 'The newest node comes out next, so the walk dives down the left side before it comes back for the right.',
+          why: 'The newest node comes out next, so the search dives down the left side before it comes back for the right.',
         },
       )
     }
   }
-  record(null, 2, `The ${fk} is empty, so the loop stops. Visit order: ${output.join(', ')}.`, { done: true })
+  record(
+    null,
+    7,
+    `The ${fk} is empty: ${key} is not in the tree. Every node was checked, in this order: ${output.join(', ')}.`,
+    { done: true, found: false },
+  )
   return steps
 }
 

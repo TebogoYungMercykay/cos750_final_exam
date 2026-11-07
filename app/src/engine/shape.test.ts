@@ -2,7 +2,6 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import {
   balancedFrom,
-  depthOf,
   findNode,
   firstViolation,
   fromKeys,
@@ -12,7 +11,7 @@ import {
   insertSlot,
   isBst,
   leaves,
-  levelCount,
+  levelOf,
   node,
   parentOf,
   size,
@@ -30,22 +29,32 @@ describe('tree queries', () => {
     expect(fromSpec(null)).toBeNull()
   })
 
-  it('finds parents, depths and leaves', () => {
+  it('finds parents, levels and leaves', () => {
     expect(findNode(sample, 25)?.key).toBe(25)
     expect(findNode(sample, 99)).toBeNull()
     expect(parentOf(sample, 25)?.key).toBe(30)
     expect(parentOf(sample, 40)).toBeNull()
-    expect(depthOf(sample, 25)).toBe(3)
-    expect(depthOf(sample, 70)).toBe(2)
-    expect(depthOf(sample, 99)).toBe(-1)
+    expect(levelOf(sample, 40)).toBe(1)
+    expect(levelOf(sample, 25)).toBe(4)
+    expect(levelOf(sample, 70)).toBe(3)
+    expect(levelOf(sample, 99)).toBe(0)
     expect(leaves(sample)).toEqual([10, 25, 50, 70])
     expect(leaves(null)).toEqual([])
   })
 
-  it('measures height in edges', () => {
-    expect(height(null)).toBe(-1)
-    expect(height(node(1))).toBe(0)
-    expect(height(sample)).toBe(3)
+  it('measures height in levels, as COS212 does: empty 0, a single node 1', () => {
+    expect(height(null)).toBe(0)
+    expect(height(node(1))).toBe(1)
+    expect(height(sample)).toBe(4)
+  })
+
+  it('puts the deepest node on the level that equals the height', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => {
+        const tree = fromKeys(keys)
+        return Math.max(0, ...keys.map((k) => levelOf(tree, k))) === height(tree)
+      }),
+    )
   })
 
   it('points at the node that breaks the rule for an ancestor, not only a parent', () => {
@@ -89,7 +98,7 @@ describe('tree queries', () => {
       fc.property(uniqueKeys, (keys) => {
         const sorted = [...keys].sort((a, b) => a - b)
         const tree = balancedFrom(sorted)
-        return isBst(tree) && size(tree) === keys.length && levelCount(tree) === Math.ceil(Math.log2(keys.length + 1))
+        return isBst(tree) && size(tree) === keys.length && height(tree) === Math.ceil(Math.log2(keys.length + 1))
       }),
     )
   })
@@ -116,14 +125,14 @@ describe('seeded randomness', () => {
       const tree = randomTree(7, seeded(seed))
       expect(isBst(tree)).toBe(true)
       expect(size(tree)).toBe(7)
-      expect(height(tree)).toBeLessThanOrEqual(3)
+      expect(height(tree)).toBeLessThanOrEqual(4)
     }
   })
 
   it('falls back to a balanced tree when the limit cannot be met by chance', () => {
     const tree = randomTree(7, seeded(3), 1)
     expect(size(tree)).toBe(7)
-    expect(height(tree)).toBe(2)
+    expect(height(tree)).toBe(3)
   })
 
   it('offers keys that are not in the tree yet', () => {

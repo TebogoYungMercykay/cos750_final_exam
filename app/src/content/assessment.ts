@@ -11,7 +11,7 @@ import {
   type TreeNode,
 } from '../engine/bst'
 import { freshKey, pick, randomTree, shuffle, type Rng } from '../engine/random'
-import { searchTrace, TRAVERSALS } from '../engine/traces'
+import { frontierTrace, searchTrace, TRAVERSALS } from '../engine/traces'
 import { depthFirstOrder } from '../engine/traversal'
 import type { McqQuestion, OutcomeId, Question } from './types'
 
@@ -206,7 +206,7 @@ export const BANK: McqQuestion[] = [
     prompt: 'Why can a BST built from already sorted input be slow to search?',
     options: [
       'Sorted data cannot be stored in a BST',
-      'It becomes a tall chain with height n − 1, so search is O(n)',
+      'It becomes a tall chain with height n, so search is O(n)',
       'In-order traversal stops working',
       'The root becomes too large',
     ],
@@ -218,7 +218,7 @@ export const BANK: McqQuestion[] = [
       'The root is one node like any other. The problem is that every key ends up on one long path.',
     ],
     hints: ['Draw the tree after inserting 1, 2, 3, 4.'],
-    explain: 'Each key goes to the right of the previous one: height n − 1, so search degrades to O(n).',
+    explain: 'Each key goes to the right of the previous one: height n, so search degrades to O(n).',
   },
   {
     id: 'a7',
@@ -353,16 +353,16 @@ export const GENERATORS: Record<OutcomeId, Generator> = {
       type: 'mcq',
       tree,
       bloom: 'Understand',
-      prompt: 'What is the height of this tree, counting edges?',
-      ...numberOptions(h, [h + 1, Math.max(0, h - 1)], 7, (v) =>
-        v === h + 1
-          ? 'That counts the nodes on the longest path. Height counts the edges between them.'
-          : v < h
-            ? 'One edge short: count every edge from the root down to the deepest leaf.'
-            : '7 is the number of nodes. Height is the number of edges on the longest root to leaf path.',
+      prompt: 'What is the height of this tree?',
+      ...numberOptions(h, [h - 1, h + 1], 7, (v) =>
+        v === h - 1
+          ? 'That counts edges. COS212 counts levels: the nodes on the longest path from the root down.'
+          : v === h + 1
+            ? 'One too many: count the levels, with the root as level 1.'
+            : '7 is the number of nodes. Height is the number of levels.',
       ),
-      hints: ['Count the edges on the longest root to leaf path.'],
-      explain: `The longest root to leaf path has ${h} edges.`,
+      hints: ['Count the levels: the root is on level 1.'],
+      explain: `The deepest node is on level ${h}, so the height is ${h}.`,
     }
   },
   LO2: (rng) => {
@@ -432,6 +432,28 @@ export const GENERATORS: Record<OutcomeId, Generator> = {
     }
   },
   LO4: (rng) => {
+    if (rng() < 0.4) {
+      const tree = randomTree(7, rng) as TreeNode
+      const key = pick(
+        depthFirstOrder(tree, 'in').filter((k) => k !== tree.key),
+        rng,
+      )
+      const order = frontierTrace(tree, 'dfs', key).at(-1)!.output
+      return {
+        id: freshId('g4'),
+        lo: 'LO4',
+        type: 'node',
+        tree,
+        answer: [order.at(-2)!],
+        bloom: 'Apply',
+        prompt: `Depth first search, with a stack, looks for ${key}. Click the node it checks just before ${key}.`,
+        hints: [
+          'Depth first search checks nodes in pre-order: the root, then the whole left subtree, then the right.',
+          `List the nodes it checks, in order, until it reaches ${key}.`,
+        ],
+        explain: `It checks ${order.join(', ')}, so ${order.at(-2)} comes just before ${key}.`,
+      }
+    }
     const kind = pick(['pre', 'in', 'post'] as const, rng)
     const first = { pre: 'The root is first.', in: 'For a BST, in-order is sorted order.', post: 'The root is last.' }
     return {
@@ -446,17 +468,45 @@ export const GENERATORS: Record<OutcomeId, Generator> = {
       explain: '',
     }
   },
-  LO5: (rng) => ({
-    id: freshId('g5'),
-    lo: 'LO5',
-    type: 'order',
-    kind: 'level',
-    tree: randomTree(8, rng),
-    bloom: 'Apply',
-    prompt: 'Click the nodes in LEVEL-ORDER.',
-    hints: ['Row by row, from the top; left to right in each row.'],
-    explain: '',
-  }),
+  LO5: (rng) => {
+    const tree = randomTree(8, rng) as TreeNode
+    if (rng() < 0.4) {
+      const key = pick(
+        depthFirstOrder(tree, 'in').filter((k) => k !== tree.key),
+        rng,
+      )
+      const count = frontierTrace(tree, 'bfs', key).at(-1)!.output.length
+      const bst = searchTrace(tree, key).at(-1)!.path.length
+      return {
+        id: freshId('g5'),
+        lo: 'LO5',
+        type: 'mcq',
+        tree,
+        bloom: 'Apply',
+        prompt: `Breadth first search, with a queue, looks for ${key}. How many nodes does it check, ${key} included?`,
+        ...numberOptions(count, [bst, count - 1], count + 1, (v) =>
+          v === bst
+            ? 'That is BST search, which uses the rule to follow one path. Tree search checks level by level.'
+            : v < count
+              ? `Count the node that holds ${key} as well: it is checked too.`
+              : `One too many: the search stops as soon as it checks ${key}.`,
+        ),
+        hints: ['It checks level by level, from the top, left to right in each level.'],
+        explain: `It checks ${frontierTrace(tree, 'bfs', key).at(-1)!.output.join(', ')}: ${count} nodes.`,
+      }
+    }
+    return {
+      id: freshId('g5'),
+      lo: 'LO5',
+      type: 'order',
+      kind: 'level',
+      tree,
+      bloom: 'Apply',
+      prompt: 'Click the nodes in LEVEL-ORDER.',
+      hints: ['Row by row, from the top; left to right in each row.'],
+      explain: '',
+    }
+  },
   LO6: (rng) => {
     const n = 5 + Math.floor(rng() * 3)
     const keys = shuffle(
@@ -468,26 +518,25 @@ export const GENERATORS: Record<OutcomeId, Generator> = {
     const chain = rng() < 0.5
     const order = chain ? keys : depthFirstOrder(balancedFrom(keys), 'pre')
     const h = height(fromKeys(order))
-    const low = Math.floor(Math.log2(n))
+    const low = height(balancedFrom(keys))
     return {
       id: freshId('g6'),
       lo: 'LO6',
       type: 'mcq',
       bloom: 'Analyse',
-      prompt: `These keys are inserted, in this order, into an empty BST: ${order.join(', ')}. What is the height of the tree, counting edges?`,
-      ...numberOptions(h, [n - 1, low], n, (v) =>
-        v === n
-          ? `${n} is the number of keys. Height counts edges, and even a chain of ${n} keys has ${n - 1}.`
-          : v === n - 1
-            ? 'That is the height of a chain. Here a middle key goes in first, so the tree branches.'
-            : 'That would be a balanced tree. Each key here is larger than the one before, so every key goes right.',
+      prompt: `These keys are inserted, in this order, into an empty BST: ${order.join(', ')}. What is the height of the tree?`,
+      ...numberOptions(h, [h - 1, chain ? low : n], h + 1, (v) =>
+        v === h - 1
+          ? 'That counts edges. COS212 counts levels: one more.'
+          : v === h + 1
+            ? 'One too many: count the levels, with the root as level 1.'
+            : chain
+              ? 'That would be a balanced tree. Each key here is larger than the one before, so every key goes right.'
+              : 'That is the height of a chain. Here a middle key goes in first, so the tree branches.',
       ),
-      hints: [
-        'Draw the tree as you insert, one key at a time.',
-        'Height counts the edges on the longest root to leaf path.',
-      ],
+      hints: ['Draw the tree as you insert, one key at a time.', 'Height counts levels: the root is level 1.'],
       explain: chain
-        ? `Each key is larger than the one before, so every key goes right: a chain of height ${h}. Searching it is O(n).`
+        ? `Each key is larger than the one before, so every key goes right: a chain of ${h} levels, so height ${h}. Searching it is O(n).`
         : `Middle keys go in first, so each level fills before the next: height ${h}, about log₂ n.`,
     }
   },

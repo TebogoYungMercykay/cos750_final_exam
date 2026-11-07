@@ -62,12 +62,13 @@ export function size(root: Tree): number {
   return root === null ? 0 : 1 + size(root.left) + size(root.right)
 }
 
-export function levelCount(root: Tree): number {
-  return root === null ? 0 : 1 + Math.max(levelCount(root.left), levelCount(root.right))
-}
-
+/**
+ * Height as COS212 counts it (Drozdek, section 6.1, and the COS212
+ * assignment code): the number of levels, so an empty tree has height 0 and
+ * a single node height 1.
+ */
 export function height(root: Tree): number {
-  return levelCount(root) - 1
+  return root === null ? 0 : 1 + Math.max(height(root.left), height(root.right))
 }
 
 /** A tree written as nested arrays: a key, or [key, left, right], or null. */
@@ -93,11 +94,11 @@ export function parentOf(root: Tree, key: number): TreeNode | null {
   return parentOf(root.left, key) ?? parentOf(root.right, key)
 }
 
-export function depthOf(root: Tree, key: number, depth = 0): number {
-  if (root === null) return -1
-  if (root.key === key) return depth
-  const left = depthOf(root.left, key, depth + 1)
-  return left !== -1 ? left : depthOf(root.right, key, depth + 1)
+/** The level of a node, counting the root as level 1, or 0 when the key is not in the tree. */
+export function levelOf(root: Tree, key: number, level = 1): number {
+  if (root === null) return 0
+  if (root.key === key) return level
+  return levelOf(root.left, key, level + 1) || levelOf(root.right, key, level + 1)
 }
 
 export function childCount(n: TreeNode): number {

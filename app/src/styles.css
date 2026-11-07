@@ -1097,6 +1097,36 @@ textarea:focus {
   margin-top: auto;
 }
 
+/* The app's one data structure and one algorithm, and the lessons for each. */
+.parts {
+  display: grid;
+  gap: 10px;
+  margin: 22px 0 0;
+}
+
+.part {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.part dt {
+  font: 600 0.72rem var(--sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.part dd {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
 /* ========================================================================== */
 /* Pages and cards                                                            */
 /* ========================================================================== */

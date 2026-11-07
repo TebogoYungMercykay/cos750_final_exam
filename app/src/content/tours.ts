@@ -28,7 +28,7 @@ export const TOURS: Record<TourId, Tour> = {
     name: 'Getting started',
     steps: [
       {
-        title: 'Welcome to TreeTutor',
+        title: 'Welcome to TreeTutor, the COS212 app',
         body: (mode) =>
           mode === 'guided'
             ? 'This tour points out each part of the screen and what it does. Use Next and Back, or the arrow keys. Skip whenever you like: the question mark button at the top brings any tour back.'

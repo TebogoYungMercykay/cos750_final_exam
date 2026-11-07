@@ -36,7 +36,7 @@ const SPEEDS = [
 function trace(tree: Tree, kind: TraceKind, key: number): { steps: TraceStep[]; result: Tree } {
   if (kind === 'search') return { steps: searchTrace(tree, key), result: tree }
   if (kind === 'insert') return insertTrace(tree, key)
-  if (kind === 'bfs' || kind === 'dfs') return { steps: frontierTrace(tree, kind), result: tree }
+  if (kind === 'bfs' || kind === 'dfs') return { steps: frontierTrace(tree, kind, key), result: tree }
   return { steps: traversalTrace(tree, kind), result: tree }
 }
 
@@ -120,7 +120,8 @@ export function StepPlayer({ tree, kind, keyValue = 0, callout }: StepPlayerProp
     return ''
   }
   const note = (key: number) => (key === step.current ? step.note : undefined)
-  const title = `${TRACE_TITLES[kind]}${kind === 'search' || kind === 'insert' ? `, key ${keyValue}` : ''}`
+  const keyed = kind === 'search' || kind === 'insert' || kind === 'bfs' || kind === 'dfs'
+  const title = `${TRACE_TITLES[kind]}${keyed ? `, key ${keyValue}` : ''}`
   const traversal = kind in TRAVERSALS ? TRAVERSALS[kind as keyof typeof TRAVERSALS] : null
   const ModeIcon = guided ? LifeBuoy : Compass
 
