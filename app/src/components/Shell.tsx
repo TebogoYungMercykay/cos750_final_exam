@@ -1,6 +1,5 @@
 import {
   ChartColumn,
-  CircleHelp,
   Compass,
   Dumbbell,
   FlaskConical,
@@ -17,7 +16,7 @@ import { BADGES } from '../content/badges'
 import { MODES } from '../content/modes'
 import { useProgress } from '../state/progress'
 import { href, type Route } from '../state/router'
-import { tours } from '../state/tour'
+import { ProfileMenu } from './ProfileMenu'
 
 export function BrandMark() {
   return (
@@ -66,18 +65,6 @@ export function Header({ current }: { current: Route['name'] }) {
             </span>
           </>
         )}
-        {progress.name && (
-          <button
-            type="button"
-            className="btn btn-icon btn-quiet"
-            data-tour="help"
-            onClick={tours.start}
-            aria-label="Take the tour of the app"
-            title="Take the tour of the app"
-          >
-            <CircleHelp size={18} aria-hidden="true" />
-          </button>
-        )}
         <button
           type="button"
           className="btn btn-icon btn-quiet"
@@ -87,6 +74,7 @@ export function Header({ current }: { current: Route['name'] }) {
         >
           {dark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
         </button>
+        {progress.name && <ProfileMenu />}
       </div>
     </header>
   )
