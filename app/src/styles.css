@@ -401,6 +401,124 @@ code {
   gap: 8px;
 }
 
+/* The learner's avatar: the first letter of their name in one of four theme shades, chosen by the letter. */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid transparent;
+  border-radius: 50%;
+  font: 600 0.9rem var(--sans);
+}
+
+.avatar.is-tone-0 {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.avatar.is-tone-1 {
+  color: var(--ink);
+  background: var(--mark);
+}
+
+.avatar.is-tone-2 {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+.avatar.is-tone-3 {
+  color: var(--accent);
+  background: var(--surface);
+  border-color: var(--accent);
+}
+
+.profile {
+  position: relative;
+}
+
+.profile-button {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+  padding: 3px 10px 3px 4px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  font: 500 0.88rem var(--sans);
+  color: var(--ink);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.profile-button:hover,
+.profile-button[aria-expanded='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.profile-name {
+  max-width: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: 16px;
+  width: min(320px, calc(100vw - 24px));
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.profile-who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.profile-edit {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-actions {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.profile-actions > .btn {
+  justify-content: flex-start;
+}
+
+.profile-confirm {
+  display: grid;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.btn-small {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.85rem;
+}
+
+.fine.is-error {
+  color: var(--bad);
+}
+
 .mode-toggle {
   display: inline-flex;
   align-items: center;
@@ -2443,18 +2561,6 @@ table.mini {
   color: var(--ink-2);
 }
 
-.danger-zone {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.settings {
-  grid-column: 1 / -1;
-  display: grid;
-  gap: 16px;
-  align-content: start;
-}
-
 .setting {
   display: grid;
   gap: 8px;
@@ -2899,8 +3005,13 @@ table.mini {
 
 @media (max-width: 560px) {
   .brand-tag,
-  .mode-toggle span {
+  .mode-toggle span,
+  .profile-name {
     display: none;
+  }
+
+  .profile-button {
+    padding: 3px;
   }
 
   .toast {

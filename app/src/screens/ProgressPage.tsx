@@ -1,9 +1,8 @@
-import { ArrowLeft, Lock, Printer, Trash2 } from 'lucide-react'
+import { ArrowLeft, Lock, Printer } from 'lucide-react'
 import { useState } from 'react'
 import { BADGES, type BadgeId } from '../content/badges'
-import { MODES } from '../content/modes'
 import { MODULES, OUTCOMES, OUTCOME_IDS } from '../content/modules'
-import { useProgress, type Mode, type TextSize } from '../state/progress'
+import { useProgress } from '../state/progress'
 import { href } from '../state/router'
 import { mastery, percent, READY } from '../state/scoring'
 import { MasteryBars } from './Readiness'
@@ -12,54 +11,10 @@ const REFLECTION_TITLES = Object.fromEntries(
   MODULES.flatMap((m) => m.sections.flatMap((s) => (s.type === 'reflect' ? [[s.id, m.title]] : []))),
 )
 
-const TEXT_SIZES: { id: TextSize; label: string }[] = [
-  { id: 'normal', label: 'Normal' },
-  { id: 'large', label: 'Large' },
-  { id: 'larger', label: 'Larger' },
-]
-
-/** A group of mutually exclusive choices, marked the same way as every other choice group in the app. */
-function Choice<T extends string>({
-  id,
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  id: string
-  label: string
-  options: { id: T; label: string }[]
-  value: T
-  onChange: (value: T) => void
-}) {
-  return (
-    <div className="setting">
-      <p id={id} className="setting-label">
-        {label}
-      </p>
-      <div className="segmented" role="radiogroup" aria-labelledby={id}>
-        {options.map((o) => (
-          <button
-            type="button"
-            key={o.id}
-            role="radio"
-            aria-checked={value === o.id}
-            className={value === o.id ? 'is-on' : undefined}
-            onClick={() => onChange(o.id)}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 const dated = (at: number) => new Date(at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long' })
 
 export function ProgressPage() {
-  const { progress, update, reset } = useProgress()
-  const [confirming, setConfirming] = useState(false)
+  const { progress } = useProgress()
   const [today] = useState(() => Date.now())
   const checks = progress.assessments
   const best = checks.length ? Math.max(...checks.map((a) => a.overall)) : null
@@ -203,63 +158,6 @@ export function ProgressPage() {
             </button>
           </div>
         </section>
-
-        <section className="card settings" aria-labelledby="settings-title">
-          <h2 id="settings-title" className="display-4">
-            Settings
-          </h2>
-          <Choice
-            id="text-size"
-            label="Text size"
-            options={TEXT_SIZES}
-            value={progress.textSize}
-            onChange={(textSize) => update({ textSize })}
-          />
-          <Choice
-            id="support-mode"
-            label="Support mode"
-            options={(Object.keys(MODES) as Mode[]).map((m) => ({ id: m, label: MODES[m].name }))}
-            value={progress.mode}
-            onChange={(mode) => update({ mode })}
-          />
-          <p className="muted">{MODES[progress.mode].summary}</p>
-          <Choice
-            id="narration"
-            label="Read animation steps aloud"
-            options={[
-              { id: 'off', label: 'Off' },
-              { id: 'on', label: 'On' },
-            ]}
-            value={progress.narrate ? 'on' : 'off'}
-            onChange={(v) => update({ narrate: v === 'on' })}
-          />
-        </section>
-      </div>
-
-      <div className="danger-zone no-print">
-        {confirming ? (
-          <div className="row" role="group" aria-label="Confirm reset">
-            <span>Delete all progress, badges and notes on this device?</span>
-            <button
-              type="button"
-              className="btn btn-danger"
-              onClick={() => {
-                reset()
-                setConfirming(false)
-              }}
-            >
-              Yes, reset
-            </button>
-            <button type="button" className="btn btn-quiet" onClick={() => setConfirming(false)}>
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button type="button" className="btn btn-quiet" onClick={() => setConfirming(true)}>
-            <Trash2 size={18} aria-hidden="true" />
-            Reset progress
-          </button>
-        )}
       </div>
     </div>
   )

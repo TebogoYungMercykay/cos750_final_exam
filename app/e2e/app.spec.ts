@@ -196,19 +196,20 @@ test.describe('the tour', () => {
     }
   })
 
-  test('Help replays it, Escape ends it, and focus returns to Help', async ({ page }) => {
+  test('the profile menu replays it, Escape ends it, and focus returns to the profile', async ({ page }) => {
     await asLearner(page)
     await page.goto('./')
     await expect(tour(page)).toBeHidden()
-    const help = button(page, 'Take the tour of the app')
-    await help.click()
+    const profile = page.getByRole('button', { name: /Profile and settings/ })
+    await profile.click()
+    await button(page, 'Take the tour').click()
     await expect(tour(page)).toContainText('Welcome to TreeTutor')
     await page.keyboard.press('ArrowRight')
     await expect(tour(page)).toContainText('Five sections')
     await page.keyboard.press('ArrowLeft')
     await page.keyboard.press('Escape')
     await expect(tour(page)).toBeHidden()
-    await expect(help).toBeFocused()
+    await expect(profile).toBeFocused()
   })
 
   test('keeps every card on screen in a short window with the largest text, and passes axe', async ({ page }) => {
@@ -299,9 +300,14 @@ test('a wrong option explains the misconception behind it', async ({ page }) => 
   )
 })
 
-test('progress: text size applies to the whole page, and the lecture card can be printed', async ({ page }) => {
+test('the text size set in the profile applies to the whole page, and the lecture card can be printed', async ({
+  page,
+}) => {
   await asLearner(page, { results: { LO1: [1, 1, 1], LO3: [0.3] } })
   await page.goto('./#/progress')
+  await expect(page.getByRole('radio', { name: 'Larger' })).toHaveCount(0)
+  await expect(button(page, 'Reset progress')).toHaveCount(0)
+  await page.getByRole('button', { name: /Profile and settings/ }).click()
   await page.getByRole('radio', { name: 'Larger' }).click()
   await expect(page.getByRole('radio', { name: 'Larger' })).toHaveAttribute('aria-checked', 'true')
   await expect(page.locator('html')).toHaveAttribute('data-text', 'larger')
@@ -359,6 +365,51 @@ test('the corner tree stays still for a learner who prefers reduced motion', asy
   }
 })
 
+test.describe('the profile menu', () => {
+  const profile = (page: Page) => page.getByRole('button', { name: /Profile and settings/ })
+
+  test('shows the initial, changes the name only to a valid one, and closes with Escape', async ({ page }) => {
+    await asLearner(page)
+    await page.goto('./')
+    await expect(profile(page)).toContainText('T')
+    await profile(page).click()
+    await button(page, 'Change name').click()
+    const field = page.getByLabel('Your name')
+    await field.fill('Th4ndi!')
+    await expect(button(page, 'Save')).toBeDisabled()
+    await expect(field).toHaveAttribute('aria-invalid', 'true')
+    await field.fill('Mary-Jane')
+    await button(page, 'Save').click()
+    await expect(profile(page)).toHaveAccessibleName('Profile and settings for Mary-Jane')
+    await expect(profile(page)).toContainText('M')
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('group', { name: 'Profile and settings' })).toBeHidden()
+    await expect(profile(page)).toBeFocused()
+  })
+
+  test('resets progress only after confirming, and returns to the welcome screen', async ({ page }) => {
+    await asLearner(page)
+    await page.goto('./')
+    await profile(page).click()
+    await button(page, 'Reset progress').click()
+    await button(page, 'Cancel').click()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Trees, searched step by step.')
+    await button(page, 'Reset progress').click()
+    await button(page, 'Yes, reset').click()
+    await expect(page.getByLabel('What should we call you?')).toBeVisible()
+  })
+})
+
+test('the welcome form accepts letters, single spaces and hyphens only', async ({ page }) => {
+  await page.goto('./')
+  const field = page.getByLabel('What should we call you?')
+  await field.fill('Thandi99')
+  await expect(button(page, 'Begin')).toBeDisabled()
+  await expect(page.getByText('Use letters only, with single spaces or hyphens between parts.')).toBeVisible()
+  await field.fill('Le Roux')
+  await expect(button(page, 'Begin')).toBeEnabled()
+})
+
 test('the app never contacts another server', async ({ page, baseURL }) => {
   const origin = new URL(baseURL!).origin
   const elsewhere: string[] = []
@@ -379,7 +430,7 @@ test('on a phone, the tab bar sits at the bottom and leaves the header controls 
   await page.goto('./')
   const tabs = await page.getByRole('navigation', { name: 'Main' }).boundingBox()
   expect(Math.round(tabs!.y + tabs!.height)).toBe(page.viewportSize()!.height)
-  for (const name of ['Take the tour of the app', /support mode/i]) {
+  for (const name of [/Profile and settings/, /support mode/i]) {
     const control = button(page, name)
     const box = (await control.boundingBox())!
     const hit = await page.evaluate(

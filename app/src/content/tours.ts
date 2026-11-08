@@ -17,7 +17,7 @@ const home: Route = { name: 'home' }
 
 /**
  * The app's one tour: shown once, to a new learner, across every main page.
- * Help in the header replays it; it always ends on the home page.
+ * The profile menu replays it; it always ends on the home page.
  */
 export const TOUR: TourStep[] = [
   {
@@ -90,9 +90,9 @@ export const TOUR: TourStep[] = [
   },
   {
     route: home,
-    target: 'help',
-    title: 'Help',
-    body: 'Replay this tour from here at any time.',
+    target: 'profile',
+    title: 'Your profile',
+    body: 'Change your name, text size or read aloud, replay this tour, or reset, from here.',
   },
 ]
 
