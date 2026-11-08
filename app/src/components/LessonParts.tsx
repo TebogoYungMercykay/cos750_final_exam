@@ -1,15 +1,14 @@
 import { Check, NotebookPen } from 'lucide-react'
 import { useState } from 'react'
-import { depthOf, findNode, height, parentOf, size, type Tree } from '../engine/bst'
+import { childCount, findNode, height, levelOf, parentOf, size, type Tree } from '../engine/bst'
 import type { TraceKind } from '../engine/traces'
 import { useProgress } from '../state/progress'
 import { TreeView, type NodeState } from './TreeView'
 
-const LEGENDS: Record<'traversal' | 'path' | 'explore', [NodeState, string][]> = {
-  traversal: [
+const LEGENDS: Record<'ordered' | 'path' | 'explore', [NodeState, string][]> = {
+  ordered: [
     ['current', 'current'],
     ['visited', 'visited, number is the visit order'],
-    ['stack', 'waiting'],
   ],
   path: [
     ['current', 'current'],
@@ -23,15 +22,31 @@ const LEGENDS: Record<'traversal' | 'path' | 'explore', [NodeState, string][]> =
   ],
 }
 
+/** How waiting nodes are described for each kind of walk. They are drawn the same way for every kind. */
+const WAITING: Partial<Record<TraceKind, [NodeState, string]>> = {
+  pre: ['stack', 'on the call stack'],
+  in: ['stack', 'on the call stack, still to be visited'],
+  post: ['stack', 'on the call stack, still to be visited'],
+  level: ['queue', 'waiting in the queue'],
+  bfs: ['queue', 'waiting in the queue'],
+  dfs: ['queue', 'waiting on the stack'],
+}
+
+/** Every style the tree can show for this kind of trace, and nothing it cannot. */
 export function Legend({ kind }: { kind: TraceKind | 'explore' }) {
+  const waiting = kind === 'explore' ? undefined : WAITING[kind]
   const entries =
-    kind === 'explore' ? LEGENDS.explore : kind === 'search' || kind === 'insert' ? LEGENDS.path : LEGENDS.traversal
+    kind === 'explore'
+      ? LEGENDS.explore
+      : kind === 'search' || kind === 'insert'
+        ? LEGENDS.path
+        : [...LEGENDS.ordered, ...(waiting ? [waiting] : [])]
   return (
     <ul className="legend">
       {entries.map(([state, text]) => (
         <li key={state}>
           <i className={`swatch is-${state}`} aria-hidden="true" />
-          {kind === 'level' && state === 'stack' ? 'waiting in the queue' : text}
+          {text}
         </li>
       ))}
     </ul>
@@ -77,12 +92,12 @@ export function Explorer({ tree, caption }: { tree: Tree; caption: string }) {
               <div>
                 <dt>Children</dt>
                 <dd>
-                  left {n.left?.key ?? 'none'}, right {n.right?.key ?? 'none'}
+                  {childCount(n)}: left {n.left?.key ?? 'none'}, right {n.right?.key ?? 'none'}
                 </dd>
               </div>
               <div>
-                <dt>Depth</dt>
-                <dd>{depthOf(tree, n.key)}</dd>
+                <dt>Level</dt>
+                <dd>{levelOf(tree, n.key)}</dd>
               </div>
               <div>
                 <dt>Subtree</dt>
@@ -92,7 +107,7 @@ export function Explorer({ tree, caption }: { tree: Tree; caption: string }) {
               </div>
             </dl>
           ) : (
-            <p>Select a node to see its parent, children, depth and subtree.</p>
+            <p>Select a node to see its parent, children, level and subtree.</p>
           )}
           <Legend kind="explore" />
         </div>

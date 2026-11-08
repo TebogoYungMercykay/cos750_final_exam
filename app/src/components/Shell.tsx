@@ -13,8 +13,10 @@ import {
 } from 'lucide-react'
 import { useEffect } from 'react'
 import { BADGES } from '../content/badges'
+import { MODES } from '../content/modes'
 import { useProgress } from '../state/progress'
 import { href, type Route } from '../state/router'
+import { ProfileMenu } from './ProfileMenu'
 
 export function BrandMark() {
   return (
@@ -33,13 +35,14 @@ export function Header({ current }: { current: Route['name'] }) {
   const { progress, update } = useProgress()
   const guided = progress.mode === 'guided'
   const dark = progress.theme === 'dark'
+  const mode = MODES[progress.mode]
 
   return (
     <header className="topbar">
-      <a className="brand" href="#/" aria-label="TreeTutor home">
+      <a className="brand" href="#/" aria-label="TreeTutor, the COS212 app: home">
         <BrandMark />
         <span className="brand-name">TreeTutor</span>
-        <span className="brand-tag">COS212</span>
+        <span className="brand-tag">COS212 app</span>
       </a>
       {progress.name && <Tabs current={current} />}
       <div className="topbar-actions">
@@ -48,14 +51,15 @@ export function Header({ current }: { current: Route['name'] }) {
             <button
               type="button"
               className={`mode-toggle${guided ? ' is-guided' : ''}`}
+              data-tour="mode"
               onClick={() => update({ mode: guided ? 'standard' : 'guided' })}
-              title="Guided mode shows hints from the start and slows the animations down"
+              title={`${mode.name} mode. ${mode.summary}`}
               aria-label={`Support mode: ${guided ? 'guided' : 'standard'}. Switch to ${guided ? 'standard' : 'guided'}.`}
             >
               {guided ? <LifeBuoy size={16} aria-hidden="true" /> : <Compass size={16} aria-hidden="true" />}
               <span>{guided ? 'Guided' : 'Standard'}</span>
             </button>
-            <span className="xp" aria-label={`Experience points: ${progress.xp}`}>
+            <span className="xp" data-tour="xp" aria-label={`Experience points: ${progress.xp}`}>
               <Zap size={15} aria-hidden="true" />
               {progress.xp}
             </span>
@@ -64,11 +68,13 @@ export function Header({ current }: { current: Route['name'] }) {
         <button
           type="button"
           className="btn btn-icon btn-quiet"
+          data-tour="theme"
           onClick={() => update({ theme: dark ? 'light' : 'dark' })}
           aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
         >
           {dark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
         </button>
+        {progress.name && <ProfileMenu />}
       </div>
     </header>
   )
@@ -85,7 +91,7 @@ const NAV: { route: Route; label: string; icon: typeof RouteIcon; match: Route['
 /** Header tabs on wide screens; the same element becomes a bottom tab bar on phones. */
 function Tabs({ current }: { current: Route['name'] }) {
   return (
-    <nav className="tabs" aria-label="Main">
+    <nav className="tabs" aria-label="Main" data-tour="nav">
       <ul>
         {NAV.map(({ route, label, icon: Icon, match }) => (
           <li key={label}>

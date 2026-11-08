@@ -62,13 +62,43 @@ export function size(root: Tree): number {
   return root === null ? 0 : 1 + size(root.left) + size(root.right)
 }
 
-export function levelCount(root: Tree): number {
-  return root === null ? 0 : 1 + Math.max(levelCount(root.left), levelCount(root.right))
+/**
+ * Height as COS212 counts it (Drozdek, section 6.1, and the COS212
+ * assignment code): the number of levels, so an empty tree has height 0 and
+ * a single node height 1.
+ */
+export function height(root: Tree): number {
+  return root === null ? 0 : 1 + Math.max(height(root.left), height(root.right))
 }
 
-/** Height in edges, so a single node has height 0 and the empty tree -1. */
-export function height(root: Tree): number {
-  return levelCount(root) - 1
+/**
+ * Deletion by copying, as the COS212 textbook does it (Drozdek, section
+ * 6.6.2): a node with two children takes the key of its immediate
+ * predecessor, the rightmost node of its left subtree, and that node is
+ * removed instead. Returns a new tree; a key that is not there returns the
+ * same tree.
+ */
+export function remove(root: Tree, key: number): Tree {
+  if (root === null) return null
+  if (key < root.key) {
+    const left = remove(root.left, key)
+    return left === root.left ? root : node(root.key, left, root.right)
+  }
+  if (key > root.key) {
+    const right = remove(root.right, key)
+    return right === root.right ? root : node(root.key, root.left, right)
+  }
+  if (root.left === null) return root.right
+  if (root.right === null) return root.left
+  const before = predecessorOf(root)
+  return node(before, remove(root.left, before), root.right)
+}
+
+/** The immediate predecessor of a node with a left subtree: the key of the rightmost node in that subtree. */
+export function predecessorOf(n: TreeNode): number {
+  let current = n.left!
+  while (current.right) current = current.right
+  return current.key
 }
 
 /** A tree written as nested arrays: a key, or [key, left, right], or null. */
@@ -82,7 +112,6 @@ export function fromSpec(spec: TreeSpec): Tree {
   return node(key, fromSpec(left), fromSpec(right))
 }
 
-/** Searches every node, not only the BST path, because question trees may break the rule. */
 export function findNode(root: Tree, key: number): TreeNode | null {
   if (root === null) return null
   if (root.key === key) return root
@@ -95,11 +124,15 @@ export function parentOf(root: Tree, key: number): TreeNode | null {
   return parentOf(root.left, key) ?? parentOf(root.right, key)
 }
 
-export function depthOf(root: Tree, key: number, depth = 0): number {
-  if (root === null) return -1
-  if (root.key === key) return depth
-  const left = depthOf(root.left, key, depth + 1)
-  return left !== -1 ? left : depthOf(root.right, key, depth + 1)
+/** The level of a node, counting the root as level 1, or 0 when the key is not in the tree. */
+export function levelOf(root: Tree, key: number, level = 1): number {
+  if (root === null) return 0
+  if (root.key === key) return level
+  return levelOf(root.left, key, level + 1) || levelOf(root.right, key, level + 1)
+}
+
+export function childCount(n: TreeNode): number {
+  return (n.left ? 1 : 0) + (n.right ? 1 : 0)
 }
 
 export function leaves(root: Tree): number[] {
@@ -123,6 +156,41 @@ export type Side = 'left' | 'right'
 export interface Slot {
   parent: number | null
   side: Side | null
+}
+
+/**
+ * The nearest ancestor that `key` is on the wrong side of, with its parent,
+ * or null when the node is correctly placed or not in the tree. Follows the
+ * real path to the node, so it works on trees that break the BST rule.
+ */
+export function violatedAncestor(root: Tree, key: number): { ancestor: number; parent: number } | null {
+  const path: { key: number; side: Side }[] = []
+  const walk = (n: Tree): boolean => {
+    if (n === null) return false
+    if (n.key === key) return true
+    for (const side of ['left', 'right'] as const) {
+      path.push({ key: n.key, side })
+      if (walk(n[side])) return true
+      path.pop()
+    }
+    return false
+  }
+  if (!walk(root) || path.length === 0) return null
+  for (let i = path.length - 1; i >= 0; i--) {
+    const { key: a, side } = path[i]
+    if (side === 'left' ? key >= a : key <= a) return { ancestor: a, parent: path[path.length - 1].key }
+  }
+  return null
+}
+
+/** Every empty child link, left to right as the tree is drawn, named the way Java reaches it, such as "3.left". */
+export function nullLinks(root: Tree): string[] {
+  if (root === null) return []
+  const below = (side: Side) => {
+    const child = root[side]
+    return child === null ? [`${root.key}.${side}`] : nullLinks(child)
+  }
+  return [...below('left'), ...below('right')]
 }
 
 /** The empty child link a key would be inserted into. */

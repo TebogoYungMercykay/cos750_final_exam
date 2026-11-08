@@ -1,43 +1,48 @@
 import { ArrowLeft, Play, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FrontierPlayer } from '../components/FrontierPlayer'
+import { reveal } from '../components/reveal'
 import { StepPlayer } from '../components/StepPlayer'
 import { TreeView } from '../components/TreeView'
 import { fromKeys, insert, size, type Tree } from '../engine/bst'
-import type { TraceKind } from '../engine/traces'
+import { DEFAULT_PRESET, OPERATIONS, parseKey, PRESETS, type Operation, type PresetId } from '../content/playground'
 import { depthFirstOrder } from '../engine/traversal'
 import { href } from '../state/router'
 
-const PRESETS: Record<string, number[]> = {
-  'Balanced, 7 keys': [50, 30, 70, 20, 40, 60, 80],
-  'Lecture example': [15, 9, 23, 4, 12, 20, 27],
-  Uneven: [40, 20, 60, 10, 30, 50, 70, 25, 27],
-  'Sorted input': [10, 20, 30, 40, 50, 60],
+const MAX_NODES = 15
+const DEFAULT_KEY = 20
+const keysOf = (id: PresetId) => PRESETS.find((p) => p.id === id)!.keys
+
+interface PlaygroundProps {
+  /** Opens with this operation already running, as a review link from the readiness check does. */
+  op?: Operation
+  preset?: PresetId
+  keyValue?: number
 }
 
-const MAX_NODES = 15
-type Operation = TraceKind | 'frontier'
-
-const OPERATIONS: { id: Operation; label: string }[] = [
-  { id: 'search', label: 'Search' },
-  { id: 'insert', label: 'Insert' },
-  { id: 'pre', label: 'Pre-order' },
-  { id: 'in', label: 'In-order' },
-  { id: 'post', label: 'Post-order' },
-  { id: 'level', label: 'Level-order' },
-  { id: 'frontier', label: 'Queue or stack' },
-]
-
-export function Playground() {
-  const [tree, setTree] = useState<Tree>(() => fromKeys(PRESETS['Lecture example']))
+export function Playground({ op, preset: startPreset = DEFAULT_PRESET, keyValue = DEFAULT_KEY }: PlaygroundProps) {
+  const [opening] = useState(() => {
+    const before = fromKeys(keysOf(startPreset))
+    const after = op === 'insert' ? insert(before, keyValue) : before
+    return { before, after }
+  })
+  const [tree, setTree] = useState<Tree>(opening.after)
+  /** The preset the tree still matches; null once the learner has added keys, inserted or cleared. */
+  const [preset, setPreset] = useState<PresetId | null>(opening.after === opening.before ? startPreset : null)
   const [entry, setEntry] = useState('')
   const [message, setMessage] = useState('')
-  const [operation, setOperation] = useState<Operation>('search')
-  const [keyText, setKeyText] = useState('20')
-  const [run, setRun] = useState<{ op: Operation; key: number; tree: Tree } | null>(null)
-  const needsKey = operation === 'search' || operation === 'insert'
-  const key = Number(keyText)
-  const keyValid = keyText.trim() !== '' && Number.isInteger(key) && key >= 0 && key <= 999
+  const [operation, setOperation] = useState<Operation>(op ?? 'search')
+  const [keyText, setKeyText] = useState(String(keyValue))
+  const [run, setRun] = useState<{ op: Operation; key: number; tree: Tree } | null>(
+    op ? { op, key: keyValue, tree: opening.before } : null,
+  )
+  const runRef = useRef<HTMLElement>(null)
+  const needsKey = operation === 'search' || operation === 'insert' || operation === 'frontier'
+  const key = parseKey(keyText)
+
+  useEffect(() => {
+    if (run) reveal(runRef.current)
+  }, [run])
 
   const add = () => {
     const values = entry
@@ -55,6 +60,7 @@ export function Playground() {
       else next = insert(next, v)
     }
     setTree(next)
+    if (next !== tree) setPreset(null)
     setRun(null)
     setEntry('')
     setMessage(
@@ -65,13 +71,18 @@ export function Playground() {
   }
 
   const start = () => {
-    if (needsKey && !keyValid) {
+    if (needsKey && key === null) {
       setMessage('Enter a whole number from 0 to 999 as the key.')
       return
     }
     setMessage('')
-    setRun({ op: operation, key, tree })
-    if (operation === 'insert' && size(tree) < MAX_NODES) setTree(insert(tree, key))
+    const runKey = key ?? DEFAULT_KEY
+    setRun({ op: operation, key: runKey, tree })
+    if (operation === 'insert' && size(tree) < MAX_NODES) {
+      const grown = insert(tree, runKey)
+      if (grown !== tree) setPreset(null)
+      setTree(grown)
+    }
   }
 
   return (
@@ -88,18 +99,20 @@ export function Playground() {
       </header>
 
       <div className="playground">
-        <section className="card" aria-labelledby="build-title">
+        <section className="card" aria-labelledby="build-title" data-tour="pg-build">
           <h2 id="build-title" className="display-4">
             Your tree
           </h2>
           <div className="preset-row" role="group" aria-label="Preset trees">
-            {Object.entries(PRESETS).map(([name, keys]) => (
+            {PRESETS.map(({ id, name, keys }) => (
               <button
                 type="button"
-                key={name}
+                key={id}
                 className="chip-button"
+                aria-pressed={preset === id}
                 onClick={() => {
                   setTree(fromKeys(keys))
+                  setPreset(id)
                   setRun(null)
                   setMessage('')
                 }}
@@ -129,6 +142,7 @@ export function Playground() {
               className="btn btn-quiet"
               onClick={() => {
                 setTree(null)
+                setPreset(null)
                 setRun(null)
               }}
             >
@@ -136,6 +150,13 @@ export function Playground() {
               Clear
             </button>
           </div>
+          <p className="muted tree-source" aria-live="polite">
+            {preset
+              ? `Using the preset: ${PRESETS.find((p) => p.id === preset)!.name}.`
+              : tree === null
+                ? 'The tree is empty.'
+                : 'Using your own tree.'}
+          </p>
           {message && (
             <p className="feedback is-wrong" role="status">
               {message}
@@ -144,7 +165,7 @@ export function Playground() {
           <TreeView tree={tree} label="Your binary search tree" />
         </section>
 
-        <section className="card" aria-labelledby="run-title">
+        <section className="card" aria-labelledby="run-title" data-tour="pg-run">
           <h2 id="run-title" className="display-4">
             Run an operation
           </h2>
@@ -182,9 +203,15 @@ export function Playground() {
         </section>
 
         {run && (
-          <section className="card rise" aria-label="Animation" key={`${run.op}-${run.key}-${size(run.tree)}`}>
+          <section
+            className="card rise reveal-target"
+            aria-label="Animation"
+            key={`${run.op}-${run.key}-${size(run.tree)}`}
+            ref={runRef}
+            tabIndex={-1}
+          >
             {run.op === 'frontier' ? (
-              <FrontierPlayer tree={run.tree} />
+              <FrontierPlayer tree={run.tree} keyValue={run.key} />
             ) : (
               <StepPlayer tree={run.tree} kind={run.op} keyValue={run.key} />
             )}

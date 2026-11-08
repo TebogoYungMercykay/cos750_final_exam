@@ -16,6 +16,8 @@
 ./treetutor dev       # http://localhost:5173
 ```
 
+For a demonstration, open the app with a seed, for example `http://localhost:5173/?seed=42`. Every generated question then repeats in the same order after a reload, and the footer says the seed is on. Reset progress on the Progress page to start the demo from a clean state.
+
 ## The treetutor script
 
 `./treetutor` runs everything from the repository root, and CI calls the same commands, so a green `./treetutor all` on your machine means the same checks pass on GitHub. `./treetutor --help` lists every option.
@@ -47,18 +49,18 @@ Progress stays in the learner's browser. There is no server and no account.
 
 ## CI/CD
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `master` or `develop` and on every pull request:
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to any branch and on every pull request, so a feature branch is checked before its pull request is opened:
 
 1. `./treetutor check`: lint, format check, typecheck, unit tests with coverage (engine 100%, other logic 90%), build
 2. `./treetutor e2e`: Playwright and axe on desktop and mobile Chromium
-3. on `master` only, and only when 1 and 2 pass: deploy `app/dist` to GitHub Pages
+3. on a push to `master` or `main` only, and only when 1 and 2 pass: deploy `app/dist` to GitHub Pages
 
 [`.github/workflows/push.yml`](../.github/workflows/push.yml) marks a push to `master` or `develop` as failed when its head commit is not a merge, so changes arrive through pull requests or merge commits.
 
 One time repository setup:
 
 - **Pages:** Settings, Pages, Build and deployment, Source set to GitHub Actions.
-- **Deploy branch:** Settings, Environments, `github-pages`, Deployment branches and tags, with a rule for `master`.
+- **Deploy branch:** Settings, Environments, `github-pages`, Deployment branches and tags, with a rule for `master` and one for `main`. A deploy from a branch without a rule is rejected.
 - **Branch protection:** a ruleset on `master` and `develop` requiring a pull request and both CI check jobs.
 
 ## Branches

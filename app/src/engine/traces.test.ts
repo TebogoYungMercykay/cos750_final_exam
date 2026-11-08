@@ -1,12 +1,15 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { fromKeys, insert, insertSlot, levelCount, searchPath } from './bst'
+import { fromKeys, height, insert, insertSlot, searchPath } from './bst'
 import {
+  CODE_NOTES,
+  frontierTrace,
   insertTrace,
-  PSEUDOCODE,
+  CODE,
   searchTrace,
   traversalOrder,
   traversalTrace,
+  type TraceKind,
   type TraceStep,
   type TraversalKind,
 } from './traces'
@@ -15,8 +18,18 @@ import { depthFirstOrder, levels } from './traversal'
 const uniqueKeys = fc.uniqueArray(fc.integer({ min: 1, max: 99 }), { minLength: 1, maxLength: 25 })
 const kinds = fc.constantFrom<TraversalKind>('pre', 'in', 'post', 'level')
 const lecture = fromKeys([15, 9, 23, 4, 12, 20, 27])
+const ALL_KINDS: TraceKind[] = ['pre', 'in', 'post', 'level', 'bfs', 'dfs', 'search', 'insert']
 
-const linesInRange = (steps: TraceStep[], lines: string[]) => steps.every((s) => s.line >= 0 && s.line < lines.length)
+/** Line 0 is the signature: a step must point at a line inside the body. */
+const linesInBody = (steps: TraceStep[], lines: string[]) => steps.every((s) => s.line >= 1 && s.line < lines.length)
+
+function traceOf(kind: TraceKind, keys: number[], key: number): TraceStep[] {
+  const tree = fromKeys(keys)
+  if (kind === 'search') return searchTrace(tree, key)
+  if (kind === 'insert') return insertTrace(tree, key).steps
+  if (kind === 'bfs' || kind === 'dfs') return frontierTrace(tree, kind, key)
+  return traversalTrace(tree, kind)
+}
 
 describe('traversal traces', () => {
   it('match the lecture example orders', () => {
@@ -35,8 +48,7 @@ describe('traversal traces', () => {
         return (
           last.done === true &&
           last.output.join() === traversalOrder(tree, kind).join() &&
-          steps.slice(0, -1).every((s) => !s.done) &&
-          linesInRange(steps, PSEUDOCODE[kind])
+          steps.slice(0, -1).every((s) => !s.done)
         )
       }),
     )
@@ -57,7 +69,7 @@ describe('traversal traces', () => {
       fc.property(uniqueKeys, fc.constantFrom<TraversalKind>('pre', 'in', 'post'), (keys, kind) => {
         const tree = fromKeys(keys)
         const steps = traversalTrace(tree, kind)
-        return Math.max(...steps.map((s) => s.stack.length)) === levelCount(tree) && steps.at(-1)!.stack.length === 0
+        return Math.max(...steps.map((s) => s.stack.length)) === height(tree) && steps.at(-1)!.stack.length === 0
       }),
     )
   })
@@ -65,7 +77,8 @@ describe('traversal traces', () => {
   it('narrate leaves and returns for level-order and depth first', () => {
     const level = traversalTrace(fromKeys([2, 1, 3]), 'level')
     expect(level[0].text).toBe('Start: put the root (2) in the queue.')
-    expect(level.some((s) => s.text.startsWith('1 is a leaf'))).toBe(true)
+    expect(level.some((s) => s.text === '1 has no children: it is a leaf, so nothing joins the queue.')).toBe(true)
+    expect(traversalTrace(fromKeys([2, 3]), 'level').some((s) => s.text === '2 has no left child.')).toBe(true)
     const pre = traversalTrace(fromKeys([2, 1]), 'pre')
     expect(pre.some((s) => s.text === '1 has no left child (null), so there is nothing to do.')).toBe(true)
     expect(pre.some((s) => s.text === 'preorder(1) returns to 2.')).toBe(true)
@@ -76,26 +89,95 @@ describe('traversal traces', () => {
   })
 })
 
+describe('frontierTrace', () => {
+  const sample = fromKeys([50, 30, 70, 20, 40, 60, 80, 45, 65])
+  const ABSENT = 1000
+
+  it('starts with only the root waiting', () => {
+    expect(frontierTrace(sample, 'bfs', ABSENT)[0]).toMatchObject({ queue: [50], output: [] })
+  })
+
+  it('lists waiting nodes next one out first, whichever frontier is used', () => {
+    const after = (kind: 'bfs' | 'dfs') =>
+      frontierTrace(sample, kind, ABSENT).find((s) => s.current === 30 && s.line === 5)!
+    expect(after('bfs').queue).toEqual([70, 20, 40])
+    expect(after('dfs').queue).toEqual([20, 40, 70])
+  })
+
+  it('checks every node, in level-order or pre-order, when the key is not in the tree', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => {
+        const tree = fromKeys(keys)
+        const bfs = frontierTrace(tree, 'bfs', ABSENT).at(-1)!
+        const dfs = frontierTrace(tree, 'dfs', ABSENT).at(-1)!
+        expect(bfs).toMatchObject({ done: true, found: false, queue: [] })
+        expect(bfs.output).toEqual(traversalOrder(tree, 'level'))
+        expect(dfs.output).toEqual(traversalOrder(tree, 'pre'))
+      }),
+    )
+  })
+
+  it('stops at the key, having checked exactly the walk order up to it', () => {
+    fc.assert(
+      fc.property(uniqueKeys, fc.constantFrom<'bfs' | 'dfs'>('bfs', 'dfs'), fc.nat(), (keys, kind, pick) => {
+        const tree = fromKeys(keys)
+        const key = keys[pick % keys.length]
+        const last = frontierTrace(tree, kind, key).at(-1)!
+        const walk = traversalOrder(tree, kind === 'bfs' ? 'level' : 'pre')
+        return last.found === true && last.output.join() === walk.slice(0, walk.indexOf(key) + 1).join()
+      }),
+    )
+  })
+
+  it('narrates the search and says how each frontier adds children', () => {
+    const stack = frontierTrace(fromKeys([2, 1, 3]), 'dfs', ABSENT)
+    expect(stack[0].text).toBe('Start: search for 1000. Add the root (2) to the stack.')
+    expect(stack[2].text).toBe('Check 2: it is not 1000. Checked so far: 2.')
+    expect(stack[3].text).toBe("Push 2's children, right 3 first, then left 1, so 1 is on top. Stack: 1, 3.")
+    const queue = frontierTrace(fromKeys([2, 1, 3]), 'bfs', ABSENT)
+    expect(queue[3].text).toBe("Add 2's children to the back of the queue, left 1 then right 3. Queue: 1, 3.")
+    expect(frontierTrace(fromKeys([2, 1]), 'bfs', ABSENT)[3].text).toBe(
+      "Add 2's only child, 1, to the queue. Queue: 1.",
+    )
+    expect(frontierTrace(fromKeys([2, 1]), 'dfs', ABSENT)[3].why).toBe(
+      '1 goes on top of the stack, so it comes out next.',
+    )
+    expect(queue.some((s) => s.text === '1 is a leaf, so no children are added. Queue: 3.')).toBe(true)
+    expect(frontierTrace(fromKeys([2, 1, 3]), 'bfs', 3).at(-1)!.text).toBe('3 == 3: found after checking 3 nodes.')
+    expect(frontierTrace(fromKeys([2]), 'bfs', 2).at(-1)!.text).toBe('2 == 2: found after checking 1 node.')
+  })
+
+  it('says the key is not found in an empty tree', () => {
+    expect(frontierTrace(null, 'dfs', 5)).toEqual([expect.objectContaining({ done: true, found: false, output: [] })])
+  })
+})
+
 describe('searchTrace', () => {
   it('follows the same path as searchPath, hit or miss', () => {
     fc.assert(
       fc.property(uniqueKeys, fc.integer({ min: 1, max: 120 }), (keys, key) => {
         const tree = fromKeys(keys)
-        const steps = searchTrace(tree, key)
-        const last = steps.at(-1)!
+        const last = searchTrace(tree, key).at(-1)!
         const expected = searchPath(tree, key)
-        return (
-          last.done === true &&
-          last.found === expected.found &&
-          last.path.join() === expected.compared.join() &&
-          linesInRange(steps, PSEUDOCODE.search)
-        )
+        return last.done === true && last.found === expected.found && last.path.join() === expected.compared.join()
       }),
     )
   })
 
+  it('checks null, then equality, then direction, at every node', () => {
+    const steps = searchTrace(fromKeys([50, 30, 70, 20, 40, 60, 80]), 45)
+    expect(steps.map((s) => s.line)).toEqual([1, 2, 3, 1, 2, 4, 1, 2, 4, 1])
+    expect(steps.filter((s) => !s.detail).map((s) => s.text)).toEqual([
+      '45 < 50, so the key can only be in the LEFT subtree.',
+      '45 > 30, so the key can only be in the RIGHT subtree.',
+      '45 > 40, so the key can only be in the RIGHT subtree.',
+      'We reached a null link: 45 is not found (3 comparisons).',
+    ])
+  })
+
   it('reports comparisons in words', () => {
     expect(searchTrace(lecture, 15).at(-1)!.text).toBe('15 == 15: found after 1 comparison.')
+    expect(searchTrace(lecture, 15).at(-1)!.why).toBe('15 is at the root, so one comparison is enough.')
     expect(searchTrace(lecture, 20).at(-1)!.text).toBe('20 == 20: found after 3 comparisons.')
     expect(searchTrace(null, 5).at(-1)!.text).toBe('The tree is empty, so 5 is not found.')
   })
@@ -113,8 +195,7 @@ describe('insertTrace', () => {
           JSON.stringify(result) === JSON.stringify(insert(tree, key)) &&
           ghost.parent === slot.parent &&
           ghost.side === slot.side &&
-          steps.at(-1)!.inserted === key &&
-          linesInRange(steps, PSEUDOCODE.insert)
+          steps.at(-1)!.inserted === key
         )
       }),
     )
@@ -123,13 +204,80 @@ describe('insertTrace', () => {
   it('makes the first key the root of an empty tree', () => {
     const { steps, result } = insertTrace(null, 8)
     expect(result).toEqual(fromKeys([8]))
-    expect(steps.map((s) => s.text)).toEqual(['The tree is empty, so 8 becomes the root.', 'Inserted 8.'])
+    expect(steps.map((s) => s.text)).toEqual([
+      'The tree is empty, so 8 becomes the root.',
+      'Inserted 8. The tree now has one node.',
+    ])
   })
 
-  it('leaves the tree alone for a key it already holds', () => {
+  it('leaves the tree alone for a key it already holds, at the line that does nothing', () => {
     const { steps, result } = insertTrace(lecture, 12)
+    const last = steps.at(-1)!
     expect(result).toBe(lecture)
-    expect(steps.at(-1)!.done).toBe(true)
-    expect(steps.at(-1)!.inserted).toBeUndefined()
+    expect(last.done).toBe(true)
+    expect(last.inserted).toBeUndefined()
+    expect(CODE.insert[last.line]).toBe('  return node;')
+  })
+})
+
+describe('every trace', () => {
+  const anyTrace = fc.tuple(uniqueKeys, fc.constantFrom(...ALL_KINDS), fc.integer({ min: 1, max: 120 }))
+  const anyTraceOrEmpty = fc.tuple(
+    fc.uniqueArray(fc.integer({ min: 1, max: 99 }), { maxLength: 25 }),
+    fc.constantFrom(...ALL_KINDS),
+    fc.integer({ min: 1, max: 120 }),
+  )
+
+  it('has a note for every line of its code', () => {
+    for (const kind of ALL_KINDS) expect(CODE_NOTES[kind], kind).toHaveLength(CODE[kind].length)
+  })
+
+  it('points every step at a line in the body, never the signature', () => {
+    fc.assert(fc.property(anyTraceOrEmpty, ([keys, kind, key]) => linesInBody(traceOf(kind, keys, key), CODE[kind])))
+  })
+
+  it('marks as detail only steps that change nothing in the output, stack or queue', () => {
+    fc.assert(
+      fc.property(anyTrace, ([keys, kind, key]) => {
+        const steps = traceOf(kind, keys, key)
+        const start = { output: [], stack: [], queue: [] }
+        return steps.every((s, i) => {
+          const before = steps[i - 1] ?? start
+          return (
+            !s.detail ||
+            (s.output.join() === before.output.join() &&
+              s.stack.join() === before.stack.join() &&
+              s.queue.join() === before.queue.join())
+          )
+        })
+      }),
+    )
+  })
+
+  it('still ends on the finished state when detail steps are left out', () => {
+    fc.assert(
+      fc.property(anyTraceOrEmpty, ([keys, kind, key]) => {
+        const steps = traceOf(kind, keys, key)
+        const coarse = steps.filter((s) => !s.detail)
+        return coarse.at(-1) === steps.at(-1) && steps.at(-1)!.done === true
+      }),
+    )
+  })
+
+  it('gives a reason for every step that changes something, except the closing summary', () => {
+    fc.assert(
+      fc.property(anyTrace, ([keys, kind, key]) => {
+        const steps = traceOf(kind, keys, key)
+        return steps.slice(0, -1).every((s) => s.detail || Boolean(s.why))
+      }),
+    )
+  })
+
+  it('labels the current node on every step that has one', () => {
+    fc.assert(
+      fc.property(anyTrace, ([keys, kind, key]) =>
+        traceOf(kind, keys, key).every((s) => s.current === null || s.done || Boolean(s.note)),
+      ),
+    )
   })
 })

@@ -1,11 +1,14 @@
-import { ArrowLeft, ArrowRight, BookOpen, ChartColumn, Dumbbell, GraduationCap, RotateCcw } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, ArrowRight, BookOpen, ChartColumn, Dumbbell, GraduationCap, Play, RotateCcw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { Quiz } from '../components/QuestionCard'
+import { reveal } from '../components/reveal'
 import { readinessSet } from '../content/assessment'
 import { OUTCOMES, OUTCOME_IDS } from '../content/modules'
+import { REVIEW } from '../content/playground'
 import type { Question } from '../content/types'
 import { useProgress } from '../state/progress'
 import { href } from '../state/router'
+import { appRng } from '../state/rng'
 import { percent, READY, summarise, type Summary } from '../state/scoring'
 
 export function MasteryBars({ values }: { values: Partial<Record<string, number | null>> }) {
@@ -36,13 +39,22 @@ export function Readiness() {
   const [phase, setPhase] = useState<'intro' | 'quiz' | 'result'>('intro')
   const [questions, setQuestions] = useState<Question[]>([])
   const [result, setResult] = useState<Summary | null>(null)
+  const [attempt, setAttempt] = useState(0)
+  const resultRef = useRef<HTMLHeadingElement>(null)
   const weak = result ? OUTCOME_IDS.filter((lo) => (result.perOutcome[lo] ?? 0) < READY) : []
   const best = progress.assessments.length ? Math.max(...progress.assessments.map((a) => a.overall)) : null
+  /** The attempt before the one just finished; the newest entry is the result on screen. */
+  const previous = phase === 'result' ? progress.assessments.at(-2) : undefined
 
   const begin = () => {
-    setQuestions(readinessSet(Math.random))
+    setQuestions(readinessSet(appRng))
+    setAttempt((n) => n + 1)
     setPhase('quiz')
   }
+
+  useEffect(() => {
+    if (phase === 'result') reveal(resultRef.current)
+  }, [phase])
 
   return (
     <div className="page narrow">
@@ -74,7 +86,7 @@ export function Readiness() {
               {progress.assessments.length > 1 ? 's' : ''}.
             </p>
           )}
-          <div className="row">
+          <div className="row" data-tour="check-start">
             <button type="button" className="btn btn-primary btn-lg" onClick={begin}>
               Start
               <ArrowRight size={18} aria-hidden="true" />
@@ -87,6 +99,7 @@ export function Readiness() {
         <div className="card rise">
           <Quiz
             questions={questions}
+            revealFirst={attempt > 1}
             onFinish={(answers) => {
               const summary = summarise(answers)
               addAssessment({ at: Date.now(), overall: summary.overall, perOutcome: summary.perOutcome })
@@ -100,7 +113,7 @@ export function Readiness() {
 
       {phase === 'result' && result && (
         <div className="card rise">
-          <h2 className="display-3">
+          <h2 className="display-3 reveal-target" tabIndex={-1} ref={resultRef}>
             {weak.length ? 'Almost there. Here is your review plan.' : 'You are ready for the lecture.'}
           </h2>
           <p>
@@ -108,6 +121,43 @@ export function Readiness() {
             ready.
           </p>
           <MasteryBars values={result.perOutcome} />
+          <h3 className="subhead">Compared with yourself</h3>
+          <ul className="history">
+            {progress.warmup && (
+              <li>
+                <span>Warm-up, before the lessons</span>
+                <strong>
+                  {progress.warmup.score} of {progress.warmup.of}
+                </strong>
+              </li>
+            )}
+            {previous ? (
+              <>
+                <li>
+                  <span>Overall</span>
+                  <strong>
+                    was {percent(previous.overall)}, now {percent(result.overall)}
+                  </strong>
+                </li>
+                {OUTCOME_IDS.map((lo) => {
+                  const was = previous.perOutcome[lo]
+                  const now = result.perOutcome[lo]
+                  return was === undefined || now === undefined ? null : (
+                    <li key={lo}>
+                      <span>{OUTCOMES[lo].short}</span>
+                      <strong>
+                        was {percent(was)}, now {percent(now)}
+                      </strong>
+                    </li>
+                  )
+                })}
+              </>
+            ) : (
+              <li>
+                <span>This is your first readiness check. Take it again later to see how far you have come.</span>
+              </li>
+            )}
+          </ul>
 
           {weak.length > 0 ? (
             <>
@@ -123,6 +173,10 @@ export function Readiness() {
                       <a className="btn" href={href({ name: 'practice', topic: lo })}>
                         <Dumbbell size={18} aria-hidden="true" />
                         Practise
+                      </a>
+                      <a className="btn" href={href({ name: 'playground', ...REVIEW[lo] })}>
+                        <Play size={18} aria-hidden="true" />
+                        {REVIEW[lo].label}
                       </a>
                       <a className="btn btn-quiet" href={href({ name: 'lesson', id: OUTCOMES[lo].module })}>
                         <BookOpen size={18} aria-hidden="true" />

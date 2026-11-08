@@ -1,6 +1,23 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { fromKeys, insert, isBst, levelCount, node, searchPath, size } from './bst'
+import {
+  childCount,
+  firstViolation,
+  fromKeys,
+  fromSpec,
+  height,
+  insert,
+  isBst,
+  leaves,
+  node,
+  nullLinks,
+  predecessorOf,
+  remove,
+  searchPath,
+  size,
+  violatedAncestor,
+} from './bst'
+import { depthFirstOrder } from './traversal'
 
 const uniqueKeys = fc.uniqueArray(fc.integer({ min: -999, max: 999 }), { maxLength: 40 })
 
@@ -53,13 +70,98 @@ describe('isBst', () => {
   })
 })
 
-describe('levelCount', () => {
+describe('height', () => {
   it('grows by one per key when keys arrive sorted', () => {
-    expect(levelCount(fromKeys([1, 2, 3, 4, 5]))).toBe(5)
+    expect(height(fromKeys([1, 2, 3, 4, 5]))).toBe(5)
   })
 
   it('stays small when keys arrive in a balancing order', () => {
-    expect(levelCount(fromKeys([4, 2, 6, 1, 3, 5, 7]))).toBe(3)
+    expect(height(fromKeys([4, 2, 6, 1, 3, 5, 7]))).toBe(3)
+  })
+})
+
+describe('remove', () => {
+  const tree = fromKeys([50, 30, 70, 20, 40, 60, 80, 35])
+
+  it('removes a leaf, and a node with one child by lifting the child', () => {
+    expect(depthFirstOrder(remove(tree, 20), 'in')).toEqual([30, 35, 40, 50, 60, 70, 80])
+    expect(remove(tree, 40)!.left!.right!.key).toBe(35)
+  })
+
+  it('gives a node with two children the key of its immediate predecessor, as Drozdek does', () => {
+    expect(predecessorOf(tree!)).toBe(40)
+    expect(remove(tree, 50)!.key).toBe(40)
+    expect(remove(tree, 30)!.left!.key).toBe(20)
+  })
+
+  it('returns the same tree for a key that is not there, and keeps its input untouched', () => {
+    const copy = JSON.stringify(tree)
+    expect(remove(tree, 99)).toBe(tree)
+    expect(remove(tree, 1)).toBe(tree)
+    remove(tree, 50)
+    expect(JSON.stringify(tree)).toBe(copy)
+    expect(remove(null, 1)).toBeNull()
+  })
+
+  it('keeps a BST with every other key, whichever key goes', () => {
+    fc.assert(
+      fc.property(uniqueKeys, fc.nat(), (keys, pick) => {
+        if (keys.length === 0) return true
+        const key = keys[pick % keys.length]
+        const after = remove(fromKeys(keys), key)
+        const rest = keys.filter((k) => k !== key).sort((a, b) => a - b)
+        return isBst(after) && depthFirstOrder(after, 'in').join() === rest.join()
+      }),
+    )
+  })
+})
+
+describe('violatedAncestor', () => {
+  it('names the parent when the node is on the wrong side of its parent', () => {
+    expect(violatedAncestor(fromSpec([50, 51, null]), 51)).toEqual({ ancestor: 50, parent: 50 })
+  })
+
+  it('names an ancestor further up when the parent is fine', () => {
+    expect(violatedAncestor(fromSpec([25, [15, 10, 30], 40]), 30)).toEqual({ ancestor: 25, parent: 15 })
+  })
+
+  it('finds nothing for a correctly placed node, the root, or a key that is not there', () => {
+    const tree = fromKeys([50, 30, 70])
+    expect(violatedAncestor(tree, 30)).toBeNull()
+    expect(violatedAncestor(tree, 50)).toBeNull()
+    expect(violatedAncestor(tree, 99)).toBeNull()
+  })
+
+  it('finds nothing anywhere in a tree built by insert', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => {
+        const tree = fromKeys(keys)
+        return keys.every((k) => violatedAncestor(tree, k) === null) && firstViolation(tree) === null
+      }),
+    )
+  })
+})
+
+describe('nullLinks', () => {
+  it('names every empty child link, left to right as drawn', () => {
+    expect(nullLinks(fromKeys([8, 3, 10, 6]))).toEqual(['3.left', '6.left', '6.right', '10.left', '10.right'])
+    expect(nullLinks(null)).toEqual([])
+  })
+
+  it('finds one more null link than there are nodes', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => nullLinks(fromKeys(keys)).length === (keys.length ? keys.length + 1 : 0)),
+    )
+  })
+})
+
+describe('childCount', () => {
+  const tree = fromKeys([50, 30, 70, 20])
+
+  it('counts two children, one child and none', () => {
+    expect(childCount(tree!)).toBe(2)
+    expect(childCount(tree!.left!)).toBe(1)
+    expect(childCount(tree!.right!)).toBe(0)
   })
 })
 
@@ -78,8 +180,36 @@ describe('properties of any tree built by insert', () => {
         const tree = fromKeys(keys)
         return keys.every((key) => {
           const { found, compared } = searchPath(tree, key)
-          return found && compared.length <= levelCount(tree)
+          return found && compared.length <= height(tree)
         })
+      }),
+    )
+  })
+
+  it('has one fewer edge than nodes, so the child counts add up to size - 1', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => {
+        const tree = fromKeys(keys)
+        const countEdges = (t: typeof tree): number =>
+          t === null ? 0 : childCount(t) + countEdges(t.left) + countEdges(t.right)
+        return countEdges(tree) === Math.max(0, size(tree) - 1)
+      }),
+    )
+  })
+
+  it('gives zero children to exactly the leaves', () => {
+    fc.assert(
+      fc.property(uniqueKeys, (keys) => {
+        const tree = fromKeys(keys)
+        const zero: number[] = []
+        const walk = (t: typeof tree) => {
+          if (t === null) return
+          walk(t.left)
+          if (childCount(t) === 0) zero.push(t.key)
+          walk(t.right)
+        }
+        walk(tree)
+        return zero.join() === leaves(tree).join()
       }),
     )
   })

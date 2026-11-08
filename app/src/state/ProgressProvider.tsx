@@ -24,6 +24,10 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = progress.theme
   }, [progress.theme])
 
+  useEffect(() => {
+    document.documentElement.dataset.text = progress.textSize
+  }, [progress.textSize])
+
   const dismissToast = useCallback(() => setToast(null), [])
 
   const award = useCallback((id: BadgeId) => {
@@ -57,7 +61,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       saveReflection: (id, text) => setProgress((p) => ({ ...p, reflections: { ...p.reflections, [id]: text } })),
       addAssessment: (entry) => setProgress((p) => ({ ...p, assessments: [...p.assessments, entry] })),
       solvedPractice: () => setProgress((p) => ({ ...p, practiceSolved: p.practiceSolved + 1, xp: p.xp + 5 })),
-      reset: () => setProgress((p) => ({ ...fresh(), theme: p.theme })),
+      reset: () => setProgress((p) => ({ ...fresh(), theme: p.theme, textSize: p.textSize, narrate: p.narrate })),
     }),
     [progress, toast, award, dismissToast],
   )

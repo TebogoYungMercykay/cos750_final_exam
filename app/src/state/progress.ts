@@ -4,11 +4,15 @@ import type { ModuleId, OutcomeId } from '../content/types'
 
 export type Mode = 'standard' | 'guided'
 export type Theme = 'light' | 'dark'
+export type TextSize = 'normal' | 'large' | 'larger'
 
 export interface Progress {
   name: string
   mode: Mode
   theme: Theme
+  textSize: TextSize
+  /** Read each animation step aloud with the browser's speech synthesis. */
+  narrate: boolean
   warmup: { score: number; of: number; confidence: number } | null
   modules: Partial<Record<ModuleId, { attempts: number; best: number }>>
   results: Partial<Record<OutcomeId, number[]>>
@@ -17,6 +21,8 @@ export interface Progress {
   practiceSolved: number
   assessments: { at: number; overall: number; perOutcome: Partial<Record<OutcomeId, number>> }[]
   reflections: Record<string, string>
+  /** The learner has finished or skipped the tour, so it never starts on its own again. */
+  tourDone: boolean
 }
 
 export const STORAGE_KEY = 'treetutor-progress-v2'
@@ -25,6 +31,8 @@ export const fresh = (): Progress => ({
   name: '',
   mode: 'standard',
   theme: 'light',
+  textSize: 'normal',
+  narrate: false,
   warmup: null,
   modules: {},
   results: {},
@@ -33,13 +41,17 @@ export const fresh = (): Progress => ({
   practiceSolved: 0,
   assessments: [],
   reflections: {},
+  tourDone: false,
 })
 
 /** Storage can be missing or blocked (private windows, previews), so every access is guarded. */
 export function load(): Progress {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    return saved ? { ...fresh(), ...JSON.parse(saved) } : fresh()
+    if (!saved) return fresh()
+    const { toursSeen, ...rest } = JSON.parse(saved)
+    const sawOldTours = Array.isArray(toursSeen) && toursSeen.length > 0
+    return { ...fresh(), ...(sawOldTours && { tourDone: true }), ...rest }
   } catch {
     return fresh()
   }
