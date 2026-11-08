@@ -4,9 +4,13 @@
 
 <p align="center">
   <a href="https://tebogoyungmercykay.github.io/cos750_final_exam/">
-    <img src="https://img.shields.io/badge/Open_TreeTutor-1a5fb0?style=for-the-badge&logo=githubpages&logoColor=white" alt="Open TreeTutor> The COS212 app: one data structure, the binary search tree, and one algorithm, uninformed tree search, depth first and breadth first, learnt before the lecture one step at a time. TreeTutor takes second-year COS212 students who have never met trees through six short lessons, runs every step beside its Java code, lets them try each idea on real trees, and ends with a readiness check that says which parts of the lecture they are ready for and what to practise first. practise first.
+    <img src="https://img.shields.io/badge/Open_TreeTutor-1a5fb0?style=for-the-badge&logo=githubpages&logoColor=white" alt="Open TreeTutor">
+  </a>
+</p>
 
-Try it at [tebogoyungmercykay.github.io/cos750_final_exam](https://tebogoyungmercykay.github.io/cos750_final_exam/), or read the [project plan](docs/plan.md) for the scope and approach.
+> Learn the binary search tree and uninformed tree search before the COS212 lecture, one step at a time. TreeTutor takes second-year students who know Java but have never met trees through six short lessons, runs every step beside its Java code, lets them try each idea on real trees, and ends with a readiness check that says which parts of the lecture they are ready for and what to practise first.
+
+Try it at [tebogoyungmercykay.github.io/cos750_final_exam](https://tebogoyungmercykay.github.io/cos750_final_exam/), read the [project plan](docs/plan.md) for the scope and approach, or see what is in [the latest release](https://github.com/TebogoYungMercykay/cos750_final_exam/releases/latest).
 
 ---
 
