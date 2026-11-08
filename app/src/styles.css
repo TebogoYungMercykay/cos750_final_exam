@@ -2519,8 +2519,8 @@ table.mini {
 
 .badges li.is-earned {
   border-style: solid;
-  border-color: var(--line);
-  background: var(--surface-2);
+  border-color: var(--good);
+  background: var(--good-soft);
 }
 
 .badge-icon {
@@ -2535,8 +2535,8 @@ table.mini {
 }
 
 .is-earned .badge-icon {
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--on-accent);
+  background: var(--good);
 }
 
 .notes {
