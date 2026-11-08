@@ -401,6 +401,10 @@ code {
   gap: 8px;
 }
 
+.fine.is-error {
+  color: var(--bad);
+}
+
 .mode-toggle {
   display: inline-flex;
   align-items: center;

@@ -359,6 +359,16 @@ test('the corner tree stays still for a learner who prefers reduced motion', asy
   }
 })
 
+test('the welcome form accepts letters, single spaces and hyphens only', async ({ page }) => {
+  await page.goto('./')
+  const field = page.getByLabel('What should we call you?')
+  await field.fill('Thandi99')
+  await expect(button(page, 'Begin')).toBeDisabled()
+  await expect(page.getByText('Use letters only, with single spaces or hyphens between parts.')).toBeVisible()
+  await field.fill('Le Roux')
+  await expect(button(page, 'Begin')).toBeEnabled()
+})
+
 test('the app never contacts another server', async ({ page, baseURL }) => {
   const origin = new URL(baseURL!).origin
   const elsewhere: string[] = []

@@ -5,6 +5,7 @@ import { MODULES, OUTCOMES, OUTCOME_IDS, PARTS, TREES } from '../content/modules
 import type { Part } from '../content/types'
 import { TourLauncher } from '../components/TourLauncher'
 import { TreeView } from '../components/TreeView'
+import { cleanName, MAX_NAME } from '../state/name'
 import { useProgress } from '../state/progress'
 import { href } from '../state/router'
 import { mastery, percent } from '../state/scoring'
@@ -39,7 +40,9 @@ export function SectionHead({
 function Welcome() {
   const { update } = useProgress()
   const [name, setName] = useState('')
-  const start = () => name.trim() && update({ name: name.trim() })
+  const valid = cleanName(name)
+  const broken = name.trim() !== '' && !valid
+  const start = () => valid && update({ name: valid })
 
   return (
     <section className="hero hero-split">
@@ -71,15 +74,21 @@ function Welcome() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your first name"
-              maxLength={30}
+              maxLength={MAX_NAME}
               autoComplete="given-name"
+              aria-invalid={broken}
+              aria-describedby="learner-name-rule"
             />
-            <button type="submit" className="btn btn-primary btn-lg" disabled={!name.trim()}>
+            <button type="submit" className="btn btn-primary btn-lg" disabled={!valid}>
               Begin
               <ArrowRight size={18} aria-hidden="true" />
             </button>
           </div>
-          <p className="fine">Your progress stays on this device. Nothing is sent anywhere.</p>
+          <p id="learner-name-rule" className={`fine${broken ? ' is-error' : ''}`}>
+            {broken
+              ? 'Use letters only, with single spaces or hyphens between parts.'
+              : 'Your progress stays on this device. Nothing is sent anywhere.'}
+          </p>
         </form>
       </div>
       <figure className="hero-figure glass rise" style={{ '--delay': '160ms' } as CSSProperties}>
